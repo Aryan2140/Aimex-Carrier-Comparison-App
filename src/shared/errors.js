@@ -54,18 +54,23 @@ export class CarrierError extends Error {
   }
 }
 
+const FIELD_REGEX = new RegExp(
+  `\\b(${Object.keys(FIELD_NAME_MAP)
+    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')})\\b`,
+  'g'
+);
+
 /**
- * Rewrite technical field identifiers in carrier messages into readable English.
+ * Rewrite technical field identifiers in carrier messages into readable English
+ * in a single pass so replacement text is never re-matched.
  * @param {string} text
  * @returns {string}
  */
 export function rewriteFieldNames(text) {
-  let out = String(text || '').trim();
-  for (const [raw, friendly] of Object.entries(FIELD_NAME_MAP)) {
-    const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    out = out.replace(new RegExp(`\\b${escaped}\\b`, 'g'), friendly);
-  }
-  return out;
+  return String(text || '')
+    .trim()
+    .replace(FIELD_REGEX, (match) => FIELD_NAME_MAP[match] || match);
 }
 
 /**
@@ -162,6 +167,17 @@ export function toHumanError(err, context = {}) {
       suggestion: err.suggestion,
       actionType: err.actionType,
       technicalDetail: err.technicalDetail
+    };
+  }
+
+  if (err && typeof err === 'object' && 'code' in err && 'title' in err && 'message' in err && 'technicalDetail' in err) {
+    return {
+      code: err.code,
+      title: err.title,
+      message: err.message,
+      suggestion: err.suggestion || '',
+      actionType: err.actionType || '',
+      technicalDetail: err.technicalDetail || ''
     };
   }
 
@@ -271,4 +287,21 @@ export function toHumanError(err, context = {}) {
     actionType: 'retry',
     technicalDetail: detail
   };
+}
+
+/**
+ * Create a CarrierError instance from any raw failure and context.
+ * @param {unknown} err
+ * @param {object} [context]
+ * @returns {CarrierError}
+ */
+export function asCarrierError(err, context = {}) {
+  if (err instanceof CarrierError) return err;
+  const normalized = toHumanError(err, context);
+  return new CarrierError({
+    ...normalized,
+    carrierId: context.carrierId || '',
+    status: Number(context.status || 0),
+    payload: context.payload
+  });
 }

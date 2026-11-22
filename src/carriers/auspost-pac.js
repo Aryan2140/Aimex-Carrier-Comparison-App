@@ -3,7 +3,7 @@
  */
 
 import { AUSPOST_BASE_URL, CARRIER_IDS } from '../shared/constants.js';
-import { CarrierError, toHumanError } from '../shared/errors.js';
+import { CarrierError, asCarrierError } from '../shared/errors.js';
 import {
   assertDomesticAuDestination,
   buildOrderParcels,
@@ -59,12 +59,12 @@ async function queryPacSingleParcel({ apiKey, fromPostcode, toPostcode, parcel, 
       fetchImpl
     );
   } catch (err) {
-    throw toHumanError(err, { carrierId: CARRIER_IDS.AUSPOST_PAC, url });
+    throw asCarrierError(err, { carrierId: CARRIER_IDS.AUSPOST_PAC, url });
   }
 
   const payload = await readJsonSafe(response);
   if (!response.ok || payload?.error) {
-    throw toHumanError(new Error(payload?.error?.errorMessage || `HTTP ${response.status}`), {
+    throw asCarrierError(new Error(payload?.error?.errorMessage || `HTTP ${response.status}`), {
       carrierId: CARRIER_IDS.AUSPOST_PAC,
       status: response.status || 400,
       payload,

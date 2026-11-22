@@ -3,7 +3,7 @@
  */
 
 import { AUSPOST_BASE_URL, CARRIER_IDS } from '../shared/constants.js';
-import { CarrierError, toHumanError } from '../shared/errors.js';
+import { CarrierError, asCarrierError } from '../shared/errors.js';
 import {
   assertDomesticAuDestination,
   buildOrderParcels,
@@ -49,12 +49,12 @@ async function postEparcelJson(url, headers, body, fetchImpl) {
       fetchImpl
     );
   } catch (err) {
-    throw toHumanError(err, { carrierId: CARRIER_IDS.AUSPOST_EPARCEL, url });
+    throw asCarrierError(err, { carrierId: CARRIER_IDS.AUSPOST_EPARCEL, url });
   }
 
   const payload = await readJsonSafe(response);
   if (!response.ok) {
-    throw toHumanError(new Error(`HTTP ${response.status}`), {
+    throw asCarrierError(new Error(`HTTP ${response.status}`), {
       carrierId: CARRIER_IDS.AUSPOST_EPARCEL,
       status: response.status,
       payload,
@@ -318,12 +318,12 @@ export async function testAusPostEparcel(settings, fetchImpl = fetch) {
       fetchImpl
     );
   } catch (err) {
-    throw toHumanError(err, { carrierId: CARRIER_IDS.AUSPOST_EPARCEL, url });
+    throw asCarrierError(err, { carrierId: CARRIER_IDS.AUSPOST_EPARCEL, url });
   }
 
   const payload = await readJsonSafe(response);
   if (!response.ok) {
-    throw toHumanError(new Error(`HTTP ${response.status}`), {
+    throw asCarrierError(new Error(`HTTP ${response.status}`), {
       carrierId: CARRIER_IDS.AUSPOST_EPARCEL,
       status: response.status,
       payload,

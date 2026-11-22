@@ -3,7 +3,7 @@
  */
 
 import { CARRIER_IDS, COURIERSPLEASE_URLS } from '../shared/constants.js';
-import { CarrierError, toHumanError } from '../shared/errors.js';
+import { CarrierError, asCarrierError } from '../shared/errors.js';
 import {
   assertDomesticAuDestination,
   buildOrderParcels,
@@ -68,7 +68,7 @@ async function lookupSuburbForPostcode(baseUrl, headers, postcode, rawSuburb, fe
 
   const payload = await readJsonSafe(response);
   if (response.status === 401 || response.status === 403) {
-    throw toHumanError(new Error(`HTTP ${response.status}`), {
+    throw asCarrierError(new Error(`HTTP ${response.status}`), {
       carrierId: CARRIER_IDS.COURIERS_PLEASE,
       status: response.status,
       payload,
@@ -225,12 +225,12 @@ export async function fetchCouriersPleaseRates(order, settings, fetchImpl = fetc
       fetchImpl
     );
   } catch (err) {
-    throw toHumanError(err, { carrierId, url: quoteUrl });
+    throw asCarrierError(err, { carrierId, url: quoteUrl });
   }
 
   const payload = await readJsonSafe(response);
   if (!response.ok || (payload?.responseCode && payload.responseCode !== 'SUCCESS')) {
-    throw toHumanError(new Error(payload?.msg || `HTTP ${response.status}`), {
+    throw asCarrierError(new Error(payload?.msg || `HTTP ${response.status}`), {
       carrierId,
       status: response.status || 400,
       payload,
@@ -297,12 +297,12 @@ export async function testCouriersPlease(settings, fetchImpl = fetch) {
       fetchImpl
     );
   } catch (err) {
-    throw toHumanError(err, { carrierId: CARRIER_IDS.COURIERS_PLEASE, url });
+    throw asCarrierError(err, { carrierId: CARRIER_IDS.COURIERS_PLEASE, url });
   }
 
   const payload = await readJsonSafe(response);
   if (!response.ok || (payload?.responseCode && payload.responseCode !== 'SUCCESS')) {
-    throw toHumanError(new Error(payload?.msg || `HTTP ${response.status}`), {
+    throw asCarrierError(new Error(payload?.msg || `HTTP ${response.status}`), {
       carrierId: CARRIER_IDS.COURIERS_PLEASE,
       status: response.status,
       payload,
