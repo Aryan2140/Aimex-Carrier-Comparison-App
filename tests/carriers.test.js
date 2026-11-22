@@ -246,7 +246,7 @@ test('compareRates marks cheapest globally, slices per courier, handles ties, an
   assert.equal(pacGroup.rates.length, 2);
   assert.equal(pacGroup.rates[0].shortInColumn, 'Large');
   assert.equal(pacGroup.totalAvailableCount, 3);
-  assert.equal(pacGroup.orderUrl, 'https://mypost.auspost.com.au/business/');
+  assert.equal(pacGroup.orderUrl, 'https://auspost.com.au/parcel-send/shipments');
 
   const cpGroup = result.carriers.find((c) => c.carrierId === 'couriersPlease');
   assert.equal(cpGroup.status, 'error');

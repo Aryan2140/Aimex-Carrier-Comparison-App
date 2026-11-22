@@ -84,7 +84,7 @@ export const DEFAULT_SETTINGS = {
       enabled: true,
       apiKey: '',
       includeSatchels: true,
-      orderUrl: 'https://mypost.auspost.com.au/business/'
+      orderUrl: 'https://auspost.com.au/parcel-send/shipments'
     },
     auspostEparcel: {
       enabled: true,
@@ -92,7 +92,7 @@ export const DEFAULT_SETTINGS = {
       apiPassword: '',
       accountNumber: '',
       includeSurcharges: true,
-      orderUrl: 'https://auspost.com.au/business/shipping/parcel-send'
+      orderUrl: 'https://auspost.com.au/mypost-business/orders/'
     },
     couriersPlease: {
       enabled: true,
@@ -101,7 +101,7 @@ export const DEFAULT_SETTINGS = {
       environment: 'production',
       customBaseUrl: '',
       validateLocation: true,
-      orderUrl: 'https://www.couriersplease.com.au/mycp'
+      orderUrl: 'https://edi.couriersplease.com.au/index.php'
     }
   },
   updates: {

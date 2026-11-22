@@ -251,6 +251,8 @@ export function parseEnvText(envText) {
 
 function migrateStoredSettings(rawStored) {
   const next = mergeSettings(DEFAULT_SETTINGS, rawStored);
+  let migrated = false;
+
   // Migrate v1 default Greystanes origin (no street field) to 26/191 McCredie Rd, Smithfield NSW 2164
   if (
     !rawStored?.origin?.street &&
@@ -258,9 +260,23 @@ function migrateStoredSettings(rawStored) {
     String(rawStored?.origin?.postcode || '') === '2145'
   ) {
     next.origin = { ...DEFAULT_SETTINGS.origin };
-    return { settings: next, migrated: true };
+    migrated = true;
   }
-  return { settings: next, migrated: false };
+
+  // Migrate v1.0.0 default orderUrls to updated Aimex booking links
+  const oldUrls = {
+    auspostPac: 'https://mypost.auspost.com.au/business/',
+    auspostEparcel: 'https://auspost.com.au/business/shipping/parcel-send',
+    couriersPlease: 'https://www.couriersplease.com.au/mycp'
+  };
+  for (const [id, oldUrl] of Object.entries(oldUrls)) {
+    if (next.carriers[id]?.orderUrl === oldUrl) {
+      next.carriers[id].orderUrl = DEFAULT_SETTINGS.carriers[id].orderUrl;
+      migrated = true;
+    }
+  }
+
+  return { settings: next, migrated };
 }
 
 /**
