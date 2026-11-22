@@ -4,9 +4,10 @@
   "packagingMode": "per_unit",
   "theme": "system",
   "origin": {
-    "suburb": "GREYSTANES",
+    "street": "26/191 McCredie Rd",
+    "suburb": "Smithfield",
     "state": "NSW",
-    "postcode": "2145"
+    "postcode": "2164"
   },
   "defaultDimensions": {
     "lengthCm": 20,
@@ -17,14 +18,16 @@
     "auspostPac": {
       "enabled": true,
       "apiKey": "",
-      "includeSatchels": true
+      "includeSatchels": true,
+      "orderUrl": "https://mypost.auspost.com.au/business/"
     },
     "auspostEparcel": {
       "enabled": true,
       "apiKey": "",
       "apiPassword": "",
       "accountNumber": "",
-      "includeSurcharges": true
+      "includeSurcharges": true,
+      "orderUrl": "https://auspost.com.au/business/shipping/parcel-send"
     },
     "couriersPlease": {
       "enabled": true,
@@ -32,7 +35,8 @@
       "apiKey": "",
       "environment": "production",
       "customBaseUrl": "",
-      "validateLocation": true
+      "validateLocation": true,
+      "orderUrl": "https://www.couriersplease.com.au/mycp"
     }
   },
   "updates": {

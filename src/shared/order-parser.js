@@ -110,13 +110,14 @@ export function parseItemsBlock(itemsText) {
       heightCm = Math.round(Number.parseFloat(dimsMatch[3]) * factor * 10) / 10;
     }
 
-    const skuPart = lines[i].split('|')[0]?.trim();
+    const skuPart = lines[i].includes('|') ? cleanValue(lines[i].split('|')[0]) : '';
     const rawLabel = prevLine && !/^(items?|price|qty|amount)$/i.test(prevLine)
       ? prevLine
       : (skuPart || `Item ${items.length + 1}`);
 
     items.push({
       label: rawLabel.slice(0, 60),
+      sku: skuPart.slice(0, 40),
       weightKg,
       quantity,
       lengthCm,

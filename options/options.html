@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>Settings | Aimex Carrier Rate Comparison</title>
+  <title>Settings | Carrier Comparison Companion</title>
   <link rel="stylesheet" href="../styles/tokens.css">
   <link rel="stylesheet" href="options.css">
 </head>
@@ -12,11 +12,8 @@
   <header class="settings-header">
     <div class="header-inner">
       <div class="brand-lockup">
-        <img src="../icons/icon-48.png" alt="" width="36" height="36" class="brand-logo">
-        <div>
-          <h1>Aimex Carrier Comparison Settings</h1>
-          <p class="header-subtitle">Configure courier credentials, rate limits, origin address, and GitHub updates.</p>
-        </div>
+        <img src="../assets/logos/aimex-wordmark.png" alt="Aimex" height="30" class="brand-wordmark">
+        <h1>Settings</h1>
       </div>
       <span id="ext-version" class="version-pill tabular-nums">v1.0.0</span>
     </div>
@@ -25,72 +22,64 @@
   <main class="settings-main">
     <form id="settings-form" novalidate>
       <fieldset class="settings-card">
-        <legend>Display &amp; Comparison</legend>
+        <legend>General</legend>
 
-        <div class="field-group">
-          <label for="max-prices">Displayed prices per courier <span aria-hidden="true">*</span></label>
-          <span id="max-prices-hint" class="field-hint">Enter a number between 1 and 20 (sorted cheapest first).</span>
-          <input
-            id="max-prices"
-            name="maxPricesPerCourier"
-            type="text"
-            inputmode="numeric"
-            pattern="^([1-9]|1[0-9]|20)$"
-            required
-            aria-describedby="max-prices-hint"
-            data-error="max-prices-error"
-            class="narrow-input"
-          >
-          <div id="max-prices-error" class="field-error-msg">
-            <span role="img" aria-label="Error">⚠</span> Enter a whole number from 1 to 20.
+        <div class="grid-2">
+          <div class="field-group">
+            <label for="max-prices">Displayed prices per courier <span aria-hidden="true">*</span></label>
+            <span id="max-prices-hint" class="field-hint">1 to 20 rates per column.</span>
+            <input
+              id="max-prices"
+              name="maxPricesPerCourier"
+              type="text"
+              inputmode="numeric"
+              pattern="^([1-9]|1[0-9]|20)$"
+              required
+              aria-describedby="max-prices-hint"
+              data-error="max-prices-error"
+              class="narrow-input"
+            >
+            <div id="max-prices-error" class="field-error-msg">
+              <span role="img" aria-label="Error">⚠</span> Enter a number from 1 to 20.
+            </div>
           </div>
+
+          <fieldset class="sub-fieldset">
+            <legend>Theme</legend>
+            <div class="radio-group radio-group--inline">
+              <div class="radio-row">
+                <input id="theme-system" name="theme" type="radio" value="system">
+                <label for="theme-system">System</label>
+              </div>
+              <div class="radio-row">
+                <input id="theme-light" name="theme" type="radio" value="light">
+                <label for="theme-light">Light</label>
+              </div>
+              <div class="radio-row">
+                <input id="theme-dark" name="theme" type="radio" value="dark">
+                <label for="theme-dark">Dark</label>
+              </div>
+            </div>
+          </fieldset>
         </div>
 
         <div class="checkbox-row">
           <input id="include-gst" name="includeGst" type="checkbox">
           <label for="include-gst">Display prices inclusive of GST (10%)</label>
         </div>
-
-        <fieldset class="sub-fieldset">
-          <legend>Multi-unit packaging mode</legend>
-          <div class="radio-group">
-            <div class="radio-row">
-              <input id="pack-per-unit" name="packagingMode" type="radio" value="per_unit">
-              <label for="pack-per-unit">Quote each unit as its own parcel (recommended for filters &amp; boxes)</label>
-            </div>
-            <div class="radio-row">
-              <input id="pack-combined" name="packagingMode" type="radio" value="combined">
-              <label for="pack-combined">Combine all order items into one consolidated parcel</label>
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset class="sub-fieldset">
-          <legend>Appearance theme</legend>
-          <div class="radio-group radio-group--inline">
-            <div class="radio-row">
-              <input id="theme-system" name="theme" type="radio" value="system">
-              <label for="theme-system">System default</label>
-            </div>
-            <div class="radio-row">
-              <input id="theme-light" name="theme" type="radio" value="light">
-              <label for="theme-light">Light</label>
-            </div>
-            <div class="radio-row">
-              <input id="theme-dark" name="theme" type="radio" value="dark">
-              <label for="theme-dark">Dark</label>
-            </div>
-          </div>
-        </fieldset>
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>Dispatch Origin &amp; Default Parcel Dimensions</legend>
-        <p class="section-intro">Used whenever an order does not specify parcel dimensions on the page.</p>
+        <legend>Origin &amp; Default Parcel Size</legend>
+
+        <div class="field-group">
+          <label for="origin-street">Street address</label>
+          <input id="origin-street" name="originStreet" type="text" autocomplete="street-address">
+        </div>
 
         <div class="grid-3">
           <div class="field-group">
-            <label for="origin-suburb">Origin suburb <span aria-hidden="true">*</span></label>
+            <label for="origin-suburb">Suburb <span aria-hidden="true">*</span></label>
             <input
               id="origin-suburb"
               name="originSuburb"
@@ -100,12 +89,12 @@
               data-error="origin-suburb-error"
             >
             <div id="origin-suburb-error" class="field-error-msg">
-              <span role="img" aria-label="Error">⚠</span> Enter a dispatch suburb (e.g. GREYSTANES).
+              <span role="img" aria-label="Error">⚠</span> Enter a suburb.
             </div>
           </div>
 
           <div class="field-group">
-            <label for="origin-state">Origin state <span aria-hidden="true">*</span></label>
+            <label for="origin-state">State <span aria-hidden="true">*</span></label>
             <select id="origin-state" name="originState" required>
               <option value="NSW">NSW</option>
               <option value="VIC">VIC</option>
@@ -119,8 +108,7 @@
           </div>
 
           <div class="field-group">
-            <label for="origin-postcode">Origin postcode <span aria-hidden="true">*</span></label>
-            <span id="origin-pc-hint" class="field-hint">4 digits (e.g. 2145)</span>
+            <label for="origin-postcode">Postcode <span aria-hidden="true">*</span></label>
             <input
               id="origin-postcode"
               name="originPostcode"
@@ -130,11 +118,10 @@
               maxlength="4"
               required
               autocomplete="postal-code"
-              aria-describedby="origin-pc-hint"
               data-error="origin-pc-error"
             >
             <div id="origin-pc-error" class="field-error-msg">
-              <span role="img" aria-label="Error">⚠</span> Enter a 4-digit Australian postcode.
+              <span role="img" aria-label="Error">⚠</span> Enter a 4-digit postcode.
             </div>
           </div>
         </div>
@@ -152,7 +139,7 @@
               data-error="default-length-error"
             >
             <div id="default-length-error" class="field-error-msg">
-              <span role="img" aria-label="Error">⚠</span> Enter a positive number in cm.
+              <span role="img" aria-label="Error">⚠</span> Positive number required.
             </div>
           </div>
 
@@ -168,7 +155,7 @@
               data-error="default-width-error"
             >
             <div id="default-width-error" class="field-error-msg">
-              <span role="img" aria-label="Error">⚠</span> Enter a positive number in cm.
+              <span role="img" aria-label="Error">⚠</span> Positive number required.
             </div>
           </div>
 
@@ -184,210 +171,213 @@
               data-error="default-height-error"
             >
             <div id="default-height-error" class="field-error-msg">
-              <span role="img" aria-label="Error">⚠</span> Enter a positive number in cm.
+              <span role="img" aria-label="Error">⚠</span> Positive number required.
             </div>
           </div>
         </div>
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>Australia Post PAC (Standard Rates)</legend>
+        <legend>Favourite Parcel Presets</legend>
+        <div class="presets-table-wrap">
+          <table class="presets-table">
+            <thead>
+              <tr>
+                <th scope="col">Product Match</th>
+                <th scope="col">Weight (kg)</th>
+                <th scope="col">L (cm)</th>
+                <th scope="col">W (cm)</th>
+                <th scope="col">H (cm)</th>
+                <th scope="col"><span class="visually-hidden">Remove</span></th>
+              </tr>
+            </thead>
+            <tbody id="presets-tbody"></tbody>
+          </table>
+        </div>
+        <div>
+          <button type="button" id="add-preset-btn" class="btn-secondary">+ Add Preset</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-card">
+        <legend>
+          <span class="legend-brand">
+            <img src="../assets/logos/auspost-pac.jpg" alt="" width="20" height="20" class="legend-logo">
+            Australia Post PAC
+          </span>
+        </legend>
 
         <div class="checkbox-row">
           <input id="pac-enabled" name="pacEnabled" type="checkbox">
-          <label for="pac-enabled">Enable Australia Post PAC comparison</label>
+          <label for="pac-enabled">Enable Australia Post PAC</label>
         </div>
 
         <div class="field-group">
-          <label for="pac-api-key">PAC API Key (<code>AUTH-KEY</code>)</label>
+          <label for="pac-api-key">API Key (<code>AUTH-KEY</code>)</label>
           <div class="secret-input-wrap">
-            <input
-              id="pac-api-key"
-              name="pacApiKey"
-              type="password"
-              autocorrect="off"
-              autocapitalize="none"
-              spellcheck="false"
-            >
-            <button type="button" class="toggle-secret-btn btn-secondary" data-target="pac-api-key" aria-pressed="false" aria-label="Show PAC API Key">
-              Show
-            </button>
+            <input id="pac-api-key" name="pacApiKey" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
+            <button type="button" class="toggle-secret-btn btn-secondary" data-target="pac-api-key" aria-pressed="false" aria-label="Show PAC API Key">Show</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="pac-order-url">Create Order URL</label>
+          <input id="pac-order-url" name="pacOrderUrl" type="url" autocorrect="off" autocapitalize="none" spellcheck="false" data-error="pac-url-error">
+          <div id="pac-url-error" class="field-error-msg">
+            <span role="img" aria-label="Error">⚠</span> Enter a valid URL.
           </div>
         </div>
 
         <div class="checkbox-row">
           <input id="pac-satchels" name="pacIncludeSatchels" type="checkbox">
-          <label for="pac-satchels">Include flat-rate satchels and boxes alongside own packaging</label>
+          <label for="pac-satchels">Include flat-rate satchels and boxes</label>
         </div>
 
         <div class="test-bar">
-          <button type="button" id="test-pac-btn" class="btn-secondary">Test AusPost PAC</button>
+          <button type="button" id="test-pac-btn" class="btn-secondary">Test PAC</button>
           <span id="test-pac-result" class="test-result" role="status"></span>
         </div>
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>Australia Post eParcel (Contract Rates)</legend>
+        <legend>
+          <span class="legend-brand">
+            <img src="../assets/logos/auspost-eparcel.jpg" alt="" width="20" height="20" class="legend-logo">
+            Australia Post eParcel
+          </span>
+        </legend>
 
         <div class="checkbox-row">
           <input id="eparcel-enabled" name="eparcelEnabled" type="checkbox">
-          <label for="eparcel-enabled">Enable Australia Post eParcel comparison</label>
+          <label for="eparcel-enabled">Enable Australia Post eParcel</label>
         </div>
 
         <div class="grid-2">
           <div class="field-group">
             <label for="eparcel-api-key">Shipping API Key</label>
             <div class="secret-input-wrap">
-              <input
-                id="eparcel-api-key"
-                name="eparcelApiKey"
-                type="password"
-                autocorrect="off"
-                autocapitalize="none"
-                spellcheck="false"
-              >
-              <button type="button" class="toggle-secret-btn btn-secondary" data-target="eparcel-api-key" aria-pressed="false" aria-label="Show eParcel API Key">
-                Show
-              </button>
+              <input id="eparcel-api-key" name="eparcelApiKey" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
+              <button type="button" class="toggle-secret-btn btn-secondary" data-target="eparcel-api-key" aria-pressed="false" aria-label="Show eParcel API Key">Show</button>
             </div>
           </div>
 
           <div class="field-group">
             <label for="eparcel-api-password">Shipping API Password</label>
             <div class="secret-input-wrap">
-              <input
-                id="eparcel-api-password"
-                name="eparcelApiPassword"
-                type="password"
-                autocorrect="off"
-                autocapitalize="none"
-                spellcheck="false"
-              >
-              <button type="button" class="toggle-secret-btn btn-secondary" data-target="eparcel-api-password" aria-pressed="false" aria-label="Show eParcel API Password">
-                Show
-              </button>
+              <input id="eparcel-api-password" name="eparcelApiPassword" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
+              <button type="button" class="toggle-secret-btn btn-secondary" data-target="eparcel-api-password" aria-pressed="false" aria-label="Show eParcel API Password">Show</button>
             </div>
           </div>
         </div>
 
-        <div class="field-group">
-          <label for="eparcel-account">Charge Account Number</label>
-          <span id="eparcel-acct-hint" class="field-hint">10-digit Australia Post eParcel account number (leading zeros preserved).</span>
-          <input
-            id="eparcel-account"
-            name="eparcelAccountNumber"
-            type="text"
-            inputmode="numeric"
-            pattern="^(\d{8}|\d{10})?$"
-            maxlength="10"
-            autocorrect="off"
-            autocapitalize="none"
-            spellcheck="false"
-            aria-describedby="eparcel-acct-hint"
-            data-error="eparcel-acct-error"
-            class="narrow-input"
-          >
-          <div id="eparcel-acct-error" class="field-error-msg">
-            <span role="img" aria-label="Error">⚠</span> Enter an 8-digit or 10-digit account number.
+        <div class="grid-2">
+          <div class="field-group">
+            <label for="eparcel-account">Account Number</label>
+            <input
+              id="eparcel-account"
+              name="eparcelAccountNumber"
+              type="text"
+              inputmode="numeric"
+              pattern="^(\d{8}|\d{10})?$"
+              maxlength="10"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-error="eparcel-acct-error"
+            >
+            <div id="eparcel-acct-error" class="field-error-msg">
+              <span role="img" aria-label="Error">⚠</span> Enter an 8-digit or 10-digit account number.
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="eparcel-order-url">Create Order URL</label>
+            <input id="eparcel-order-url" name="eparcelOrderUrl" type="url" autocorrect="off" autocapitalize="none" spellcheck="false" data-error="eparcel-url-error">
+            <div id="eparcel-url-error" class="field-error-msg">
+              <span role="img" aria-label="Error">⚠</span> Enter a valid URL.
+            </div>
           </div>
         </div>
 
         <div class="checkbox-row">
           <input id="eparcel-surcharges" name="eparcelIncludeSurcharges" type="checkbox">
-          <label for="eparcel-surcharges">Include fuel &amp; security surcharges via shipment pricing (recommended)</label>
+          <label for="eparcel-surcharges">Include fuel &amp; security surcharges</label>
         </div>
 
         <div class="test-bar">
-          <button type="button" id="test-eparcel-btn" class="btn-secondary">Test AusPost eParcel</button>
+          <button type="button" id="test-eparcel-btn" class="btn-secondary">Test eParcel</button>
           <span id="test-eparcel-result" class="test-result" role="status"></span>
         </div>
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>CouriersPlease</legend>
+        <legend>
+          <span class="legend-brand">
+            <img src="../assets/logos/couriersplease.jpg" alt="" width="20" height="20" class="legend-logo">
+            CouriersPlease
+          </span>
+        </legend>
 
         <div class="checkbox-row">
           <input id="cp-enabled" name="cpEnabled" type="checkbox">
-          <label for="cp-enabled">Enable CouriersPlease comparison</label>
+          <label for="cp-enabled">Enable CouriersPlease</label>
         </div>
 
         <div class="grid-2">
           <div class="field-group">
             <label for="cp-account">Account Number</label>
-            <span id="cp-acct-hint" class="field-hint">Your CouriersPlease Account Number (e.g. W99999), not necessarily your portal login.</span>
-            <input
-              id="cp-account"
-              name="cpAccount"
-              type="text"
-              autocorrect="off"
-              autocapitalize="none"
-              spellcheck="false"
-              aria-describedby="cp-acct-hint"
-            >
+            <input id="cp-account" name="cpAccount" type="text" autocorrect="off" autocapitalize="none" spellcheck="false">
           </div>
 
           <div class="field-group">
             <label for="cp-api-key">API Token</label>
-            <span id="cp-key-hint" class="field-hint">Token generated from the CouriersPlease Developer Portal.</span>
             <div class="secret-input-wrap">
-              <input
-                id="cp-api-key"
-                name="cpApiKey"
-                type="password"
-                autocorrect="off"
-                autocapitalize="none"
-                spellcheck="false"
-                aria-describedby="cp-key-hint"
-              >
-              <button type="button" class="toggle-secret-btn btn-secondary" data-target="cp-api-key" aria-pressed="false" aria-label="Show CouriersPlease API Token">
-                Show
-              </button>
+              <input id="cp-api-key" name="cpApiKey" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
+              <button type="button" class="toggle-secret-btn btn-secondary" data-target="cp-api-key" aria-pressed="false" aria-label="Show CouriersPlease API Token">Show</button>
             </div>
           </div>
         </div>
 
+        <div class="field-group">
+          <label for="cp-order-url">Create Order URL</label>
+          <input id="cp-order-url" name="cpOrderUrl" type="url" autocorrect="off" autocapitalize="none" spellcheck="false" data-error="cp-order-url-error">
+          <div id="cp-order-url-error" class="field-error-msg">
+            <span role="img" aria-label="Error">⚠</span> Enter a valid URL.
+          </div>
+        </div>
+
         <fieldset class="sub-fieldset">
-          <legend>CouriersPlease API Environment</legend>
-          <div class="radio-group">
+          <legend>API Environment</legend>
+          <div class="radio-group radio-group--inline">
             <div class="radio-row">
               <input id="cp-env-prod" name="cpEnvironment" type="radio" value="production">
-              <label for="cp-env-prod">Production (<code>https://api.couriersplease.com.au</code>)</label>
+              <label for="cp-env-prod">Production</label>
             </div>
             <div class="radio-row">
               <input id="cp-env-sandbox" name="cpEnvironment" type="radio" value="sandbox">
-              <label for="cp-env-sandbox">Sandbox / Testing (<code>https://api-test.couriersplease.com.au</code>)</label>
+              <label for="cp-env-sandbox">Sandbox</label>
             </div>
             <div class="radio-row">
               <input id="cp-env-custom" name="cpEnvironment" type="radio" value="custom">
-              <label for="cp-env-custom">Custom API Base URL</label>
+              <label for="cp-env-custom">Custom URL</label>
             </div>
           </div>
         </fieldset>
 
         <div id="cp-custom-url-wrap" class="field-group" hidden>
           <label for="cp-custom-url">Custom Base URL</label>
-          <span id="cp-url-hint" class="field-hint">Must be an API host (<code>apidev.couriersplease.com.au</code> is the documentation portal only).</span>
-          <input
-            id="cp-custom-url"
-            name="cpCustomBaseUrl"
-            type="url"
-            autocorrect="off"
-            autocapitalize="none"
-            spellcheck="false"
-            aria-describedby="cp-url-hint"
-            data-error="cp-url-error"
-          >
+          <input id="cp-custom-url" name="cpCustomBaseUrl" type="url" autocorrect="off" autocapitalize="none" spellcheck="false" data-error="cp-url-error">
           <div id="cp-url-error" class="field-error-msg">
             <span role="img" aria-label="Error">⚠</span> Enter a valid https:// URL.
           </div>
           <p id="cp-portal-warning" class="inline-warning" hidden>
-            <code>apidev.couriersplease.com.au</code> is the documentation website and returns 404 for quotes. Select Production or Sandbox above.
+            <code>apidev.couriersplease.com.au</code> is the docs portal, not the API host. Choose Production or Sandbox.
           </p>
         </div>
 
         <div class="checkbox-row">
           <input id="cp-validate-location" name="cpValidateLocation" type="checkbox">
-          <label for="cp-validate-location">Normalize destination suburb spelling via CouriersPlease Locations API</label>
+          <label for="cp-validate-location">Normalize destination suburb via Locations API</label>
         </div>
 
         <div class="test-bar">
@@ -397,66 +387,38 @@
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>Import Credentials from <code>.env</code></legend>
-        <p class="section-intro">
-          Load your private <code>.env</code> file locally in the browser to populate carrier API keys without committing secrets anywhere.
-        </p>
+        <legend>Import <code>.env</code> &amp; GitHub Updates</legend>
 
-        <div class="env-import-row">
-          <label for="env-file-input" class="visually-hidden">Choose .env file</label>
+        <div class="field-group">
+          <label for="env-file-input">Import local <code>.env</code> file</label>
           <input id="env-file-input" type="file" accept=".env,text/plain,.txt">
         </div>
 
         <details class="env-paste-details">
-          <summary>Or paste <code>.env</code> text manually</summary>
+          <summary>Paste <code>.env</code> text</summary>
           <div class="env-paste-body">
-            <label for="env-paste-text">Paste key=value lines</label>
-            <textarea id="env-paste-text" rows="5" autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
-            <button type="button" id="apply-env-text-btn" class="btn-secondary">Apply Pasted .env</button>
+            <label for="env-paste-text" class="visually-hidden">Paste key=value lines</label>
+            <textarea id="env-paste-text" rows="4" autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+            <button type="button" id="apply-env-text-btn" class="btn-secondary">Apply .env</button>
           </div>
         </details>
-
         <p id="env-import-status" class="test-result" role="status"></p>
-      </fieldset>
 
-      <fieldset class="settings-card">
-        <legend>Updates &amp; GitHub Repository</legend>
-
-        <div class="field-group">
-          <label for="repo-url">GitHub Repository URL <span aria-hidden="true">*</span></label>
-          <span id="repo-url-hint" class="field-hint">Checked against GitHub Releases and main manifest.json.</span>
-          <input
-            id="repo-url"
-            name="repoUrl"
-            type="url"
-            required
-            autocorrect="off"
-            autocapitalize="none"
-            spellcheck="false"
-            aria-describedby="repo-url-hint"
-            data-error="repo-url-error"
-          >
-          <div id="repo-url-error" class="field-error-msg">
-            <span role="img" aria-label="Error">⚠</span> Enter a valid GitHub repository URL.
+        <div class="grid-2">
+          <div class="field-group">
+            <label for="repo-url">GitHub Repository URL <span aria-hidden="true">*</span></label>
+            <input id="repo-url" name="repoUrl" type="url" required autocorrect="off" autocapitalize="none" spellcheck="false" data-error="repo-url-error">
+            <div id="repo-url-error" class="field-error-msg">
+              <span role="img" aria-label="Error">⚠</span> Enter a valid URL.
+            </div>
           </div>
-        </div>
 
-        <div class="field-group">
-          <label for="github-token">Optional GitHub Personal Access Token</label>
-          <span id="github-token-hint" class="field-hint">Only needed if your repository is private.</span>
-          <div class="secret-input-wrap">
-            <input
-              id="github-token"
-              name="githubToken"
-              type="password"
-              autocorrect="off"
-              autocapitalize="none"
-              spellcheck="false"
-              aria-describedby="github-token-hint"
-            >
-            <button type="button" class="toggle-secret-btn btn-secondary" data-target="github-token" aria-pressed="false" aria-label="Show GitHub Token">
-              Show
-            </button>
+          <div class="field-group">
+            <label for="github-token">GitHub Token (private repos only)</label>
+            <div class="secret-input-wrap">
+              <input id="github-token" name="githubToken" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
+              <button type="button" class="toggle-secret-btn btn-secondary" data-target="github-token" aria-pressed="false" aria-label="Show GitHub Token">Show</button>
+            </div>
           </div>
         </div>
 
@@ -476,24 +438,20 @@
   <dialog id="reset-dialog" aria-labelledby="reset-dialog-title" closedby="any">
     <form method="dialog" class="dialog-form">
       <div class="dialog-head">
-        <h1 id="reset-dialog-title">Reset all settings?</h1>
+        <h1 id="reset-dialog-title">Reset settings?</h1>
       </div>
       <p class="dialog-copy">
-        This restores display preferences, origin address, and dimensions to defaults. Choose whether to reload credentials from your local <code>config.local.json</code> or clear all saved keys.
+        Choose whether to reload from your local <code>config.local.json</code> or clear all saved credentials and restore default presets.
       </p>
       <div class="dialog-actions">
         <button type="submit" value="cancel" class="btn-secondary">Cancel</button>
         <button type="submit" value="reset-local" class="btn-primary">Reload Local Config</button>
-        <button type="submit" value="reset-blank" class="btn-danger">Clear Everything</button>
+        <button type="submit" value="reset-blank" class="btn-danger">Clear All</button>
       </div>
     </form>
   </dialog>
 
   <div id="toast-region" class="toast-region" role="region" aria-label="Notifications"></div>
-
-  <footer class="settings-footer">
-    <p>API keys are stored locally inside your browser profile (<code>chrome.storage.local</code>) and are never committed to GitHub.</p>
-  </footer>
 
   <script type="module" src="options.js"></script>
 </body>

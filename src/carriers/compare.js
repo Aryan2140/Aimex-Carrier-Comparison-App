@@ -1,23 +1,24 @@
 /**
- * Parallel multi-carrier rate comparison aggregator, cheapest-rate marker, and sorting engine.
+ * Parallel multi-carrier rate comparison aggregator, shorthand labeling, and cheapest-rate marker.
  */
 
 import { CARRIER_IDS, CARRIER_META } from '../shared/constants.js';
 import { toHumanError } from '../shared/errors.js';
+import { formatShortServiceLabel } from '../shared/presets.js';
 import { fetchAusPostPacRates } from './auspost-pac.js';
 import { fetchAusPostEparcelRates } from './auspost-eparcel.js';
 import { fetchCouriersPleaseRates } from './couriers-please.js';
 import { buildOrderParcels, round2 } from './parcel-utils.js';
 
 const CARRIER_FETCHERS = [
-  { id: CARRIER_IDS.AUSPOST_EPARCEL, fn: fetchAusPostEparcelRates },
   { id: CARRIER_IDS.AUSPOST_PAC, fn: fetchAusPostPacRates },
+  { id: CARRIER_IDS.AUSPOST_EPARCEL, fn: fetchAusPostEparcelRates },
   { id: CARRIER_IDS.COURIERS_PLEASE, fn: fetchCouriersPleaseRates }
 ];
 
 /**
  * Run all enabled carrier rate queries in parallel, sort and slice per courier,
- * and mark the global cheapest rate across all carriers.
+ * format shorthand service titles, and mark the global cheapest rate.
  * @param {object} order
  * @param {object} settings
  * @param {typeof fetch} [fetchImpl]
@@ -26,16 +27,23 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
   const maxPerCourier = Math.max(1, Number.parseInt(String(settings?.maxPricesPerCourier || 3), 10) || 3);
   const includeGst = settings?.includeGst !== false;
   const { parcels, totalWeightKg, totalParcelCount } = buildOrderParcels(order, settings);
+  const effectivePackagingMode = order?.packagingModeOverride
+    || (settings?.packagingMode === 'combined' ? 'combined' : 'per_unit');
 
   const settled = await Promise.all(
     CARRIER_FETCHERS.map(async ({ id, fn }) => {
       const meta = CARRIER_META[id];
-      const enabled = settings?.carriers?.[id]?.enabled !== false;
+      const carrierCfg = settings?.carriers?.[id] || {};
+      const enabled = carrierCfg.enabled !== false;
+      const orderUrl = String(carrierCfg.orderUrl || '').trim();
+
       if (!enabled) {
         return {
           carrierId: id,
           carrierName: meta.name,
-          subtitle: meta.subtitle,
+          shortName: meta.shortName,
+          logo: meta.logo,
+          orderUrl,
           status: 'disabled',
           rates: [],
           totalAvailableCount: 0,
@@ -49,8 +57,12 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
         const normalized = rawRates
           .map((rate) => {
             const displayPrice = includeGst ? round2(rate.priceIncGst) : round2(rate.priceExGst);
+            const labels = formatShortServiceLabel(id, rate.serviceCode, rate.serviceName);
             return {
               ...rate,
+              shortInColumn: labels.shortInColumn,
+              shortWithCarrier: labels.shortWithCarrier,
+              orderUrl,
               displayPrice,
               includesGst: includeGst,
               isCheapest: false
@@ -62,7 +74,9 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
         return {
           carrierId: id,
           carrierName: meta.name,
-          subtitle: meta.subtitle,
+          shortName: meta.shortName,
+          logo: meta.logo,
+          orderUrl,
           status: displayed.length ? 'ok' : 'empty',
           rates: displayed,
           totalAvailableCount: normalized.length,
@@ -73,7 +87,9 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
         return {
           carrierId: id,
           carrierName: meta.name,
-          subtitle: meta.subtitle,
+          shortName: meta.shortName,
+          logo: meta.logo,
+          orderUrl,
           status: 'error',
           rates: [],
           totalAvailableCount: 0,
@@ -86,9 +102,7 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
 
   const allDisplayedRates = settled.flatMap((group) => group.rates);
   let cheapestPrice = null;
-  let cheapestRates = [];
-  let savingsAmount = null;
-  let nextHighestPrice = null;
+  const cheapestRates = [];
 
   if (allDisplayedRates.length > 0) {
     cheapestPrice = Math.min(...allDisplayedRates.map((r) => r.displayPrice));
@@ -98,27 +112,7 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
         cheapestRates.push(rate);
       }
     }
-
-    const higherPrices = allDisplayedRates
-      .map((r) => r.displayPrice)
-      .filter((p) => p > cheapestPrice + 0.005);
-
-    if (higherPrices.length > 0) {
-      nextHighestPrice = Math.min(...higherPrices);
-      savingsAmount = round2(nextHighestPrice - cheapestPrice);
-    }
   }
-
-  // Sort carrier cards: cheapest available first, then empty, then errors, then disabled
-  const statusRank = { ok: 0, empty: 1, error: 2, disabled: 3 };
-  settled.sort((a, b) => {
-    const rankDiff = statusRank[a.status] - statusRank[b.status];
-    if (rankDiff !== 0) return rankDiff;
-    if (a.cheapestRatePrice !== null && b.cheapestRatePrice !== null) {
-      return a.cheapestRatePrice - b.cheapestRatePrice;
-    }
-    return 0;
-  });
 
   return {
     comparedAt: new Date().toISOString(),
@@ -129,7 +123,8 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
       origin: settings.origin,
       totalWeightKg,
       totalParcelCount,
-      packagingMode: settings.packagingMode,
+      packagingMode: effectivePackagingMode,
+      items: order.items || [],
       dimensions: parcels[0]
         ? {
             lengthCm: parcels[0].lengthCm,
@@ -143,9 +138,7 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
           price: cheapestPrice,
           includesGst: includeGst,
           winnerCount: cheapestRates.length,
-          winners: cheapestRates,
-          savingsAmount,
-          nextHighestPrice
+          winners: cheapestRates
         }
       : null,
     carriers: settled

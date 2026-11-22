@@ -1,10 +1,11 @@
 /**
  * Manifest V3 stateless service worker orchestrating one-shot order reading,
- * parallel carrier quoting, credential testing, and GitHub update checks.
+ * preset matching, parallel carrier quoting, credential testing, and GitHub update checks.
  */
 
 import { ALLOWED_ORIGIN, CARRIER_IDS } from '../shared/constants.js';
 import { CarrierError, toHumanError } from '../shared/errors.js';
+import { applyPresetsToItems } from '../shared/presets.js';
 import { loadSettings, saveLastResult } from '../shared/storage.js';
 import { checkForUpdates } from '../shared/updates.js';
 import { compareRates } from '../carriers/compare.js';
@@ -26,8 +27,8 @@ function extractionErrorFromCode(errorCode) {
       return new CarrierError({
         code: 'NOT_ALLOWED_ORIGIN',
         title: 'Unsupported website',
-        message: 'Aimex Carrier Rate Comparison only works on aimexaustralia.logicsync.app.',
-        suggestion: 'Switch to your Aimex LogicSync order tab and click Compare Rates.'
+        message: 'Carrier Comparison Companion only runs on aimexaustralia.logicsync.app.',
+        suggestion: 'Open an order page on aimexaustralia.logicsync.app and click Compare Rates.'
       });
     case 'NOT_ORDER_PAGE':
       return new CarrierError({
@@ -65,6 +66,60 @@ function extractionErrorFromCode(errorCode) {
         suggestion: 'Refresh the order page and click Compare Rates again.'
       });
   }
+}
+
+function applyUserOverrides(items, userOverrides, settings) {
+  if (!userOverrides) return { items, packagingModeOverride: null, combinedOverride: null, dimensionOverride: null };
+
+  const nextItems = items.map((item, idx) => {
+    const itemOverride = Array.isArray(userOverrides.itemsOverride) ? userOverrides.itemsOverride[idx] : null;
+    if (itemOverride) {
+      return {
+        ...item,
+        weightKg: Number(itemOverride.weightKg) > 0 ? Number(itemOverride.weightKg) : item.weightKg,
+        lengthCm: Number(itemOverride.lengthCm) > 0 ? Number(itemOverride.lengthCm) : item.lengthCm,
+        widthCm: Number(itemOverride.widthCm) > 0 ? Number(itemOverride.widthCm) : item.widthCm,
+        heightCm: Number(itemOverride.heightCm) > 0 ? Number(itemOverride.heightCm) : item.heightCm
+      };
+    }
+
+    // Single-product or manual preset override from popup
+    if (idx === 0 && items.length === 1 && userOverrides.singleOverride) {
+      const ov = userOverrides.singleOverride;
+      return {
+        ...item,
+        weightKg: Number(ov.weightKg) > 0 ? Number(ov.weightKg) : item.weightKg,
+        lengthCm: Number(ov.lengthCm) > 0 ? Number(ov.lengthCm) : item.lengthCm,
+        widthCm: Number(ov.widthCm) > 0 ? Number(ov.widthCm) : item.widthCm,
+        heightCm: Number(ov.heightCm) > 0 ? Number(ov.heightCm) : item.heightCm,
+        matchedPresetName: ov.presetName !== undefined ? ov.presetName : item.matchedPresetName
+      };
+    }
+    return item;
+  });
+
+  if (userOverrides.combine) {
+    const c = userOverrides.combined || {};
+    const defs = settings.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
+    return {
+      items: nextItems,
+      packagingModeOverride: 'combined',
+      combinedOverride: {
+        weightKg: Number(c.weightKg) > 0 ? Number(c.weightKg) : null,
+        lengthCm: Number(c.lengthCm) > 0 ? Number(c.lengthCm) : defs.lengthCm,
+        widthCm: Number(c.widthCm) > 0 ? Number(c.widthCm) : defs.widthCm,
+        heightCm: Number(c.heightCm) > 0 ? Number(c.heightCm) : defs.heightCm
+      },
+      dimensionOverride: null
+    };
+  }
+
+  return {
+    items: nextItems,
+    packagingModeOverride: 'per_unit',
+    combinedOverride: null,
+    dimensionOverride: null
+  };
 }
 
 async function handleCompareRates(message) {
@@ -112,10 +167,15 @@ async function handleCompareRates(message) {
   }
 
   const settings = await loadSettings();
+  const matchedItems = applyPresetsToItems(extracted.items, settings.parcelPresets);
+  const resolved = applyUserOverrides(matchedItems, message.userOverrides, settings);
+
   const order = {
     destination: extracted.destination,
-    items: extracted.items,
-    dimensionOverride: message.dimensionOverride || null
+    items: resolved.items,
+    packagingModeOverride: resolved.packagingModeOverride,
+    combinedOverride: resolved.combinedOverride,
+    dimensionOverride: resolved.dimensionOverride
   };
 
   const result = await compareRates(order, settings);

@@ -134,6 +134,7 @@ test('parseOrderPageText parses screenshot order and ignores Billing PII', () =>
   assert.equal(result.items.length, 1);
   assert.deepEqual(result.items[0], {
     label: '8 Stage Filter X 6',
+    sku: 'AIM8STG6',
     weightKg: 3.7,
     quantity: 1,
     lengthCm: null,

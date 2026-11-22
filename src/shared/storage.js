@@ -1,8 +1,14 @@
 /**
- * Chrome storage persistence, .env parsing, and first-run config.local.json hydration.
+ * Chrome storage persistence, .env parsing, presets normalization, and first-run config.local.json hydration.
  */
 
-import { AU_STATES, COURIERSPLEASE_URLS, DEFAULT_REPO_URL, DEFAULT_SETTINGS } from './constants.js';
+import {
+  AU_STATES,
+  COURIERSPLEASE_URLS,
+  DEFAULT_PARCEL_PRESETS,
+  DEFAULT_REPO_URL,
+  DEFAULT_SETTINGS
+} from './constants.js';
 
 const STORAGE_KEYS = {
   SETTINGS: 'settings',
@@ -48,6 +54,23 @@ function resolveCouriersPleaseEnvFromUrl(urlString) {
   return { environment: 'custom', customBaseUrl: raw, warning: '' };
 }
 
+function normalizePresets(candidate, fallback) {
+  if (!Array.isArray(candidate)) return fallback;
+  const cleaned = [];
+  for (let i = 0; i < candidate.length; i += 1) {
+    const row = candidate[i];
+    const name = cleanString(row?.name);
+    const weightKg = positiveFloat(row?.weightKg, 0);
+    const lengthCm = positiveFloat(row?.lengthCm, 0);
+    const widthCm = positiveFloat(row?.widthCm, 0);
+    const heightCm = positiveFloat(row?.heightCm, 0);
+    if (!name || !weightKg || !lengthCm || !widthCm || !heightCm) continue;
+    const id = cleanString(row?.id) || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `preset-${i + 1}`;
+    cleaned.push({ id, name, weightKg, lengthCm, widthCm, heightCm });
+  }
+  return cleaned.length ? cleaned : fallback;
+}
+
 /**
  * Deep-merge settings overrides onto base settings with schema normalization.
  * Preserves leading zeros on postcodes and account numbers by storing them as strings.
@@ -80,6 +103,10 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
     ? cpOverride.environment
     : (baseCarriers.couriersPlease?.environment || 'production');
 
+  const pacDefaultUrl = DEFAULT_SETTINGS.carriers.auspostPac.orderUrl;
+  const eparcelDefaultUrl = DEFAULT_SETTINGS.carriers.auspostEparcel.orderUrl;
+  const cpDefaultUrl = DEFAULT_SETTINGS.carriers.couriersPlease.orderUrl;
+
   return {
     maxPricesPerCourier: clampInt(
       src.maxPricesPerCourier,
@@ -97,7 +124,8 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
       ? src.theme
       : (base.theme || DEFAULT_SETTINGS.theme),
     origin: {
-      suburb: cleanString(ovOrigin.suburb, baseOrigin.suburb).toUpperCase(),
+      street: cleanString(ovOrigin.street, baseOrigin.street ?? DEFAULT_SETTINGS.origin.street),
+      suburb: cleanString(ovOrigin.suburb, baseOrigin.suburb),
       state: normalizedState,
       postcode: cleanString(ovOrigin.postcode, baseOrigin.postcode)
     },
@@ -106,6 +134,10 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
       widthCm: positiveFloat(ovDims.widthCm, baseDims.widthCm),
       heightCm: positiveFloat(ovDims.heightCm, baseDims.heightCm)
     },
+    parcelPresets: normalizePresets(
+      src.parcelPresets,
+      normalizePresets(base.parcelPresets, DEFAULT_PARCEL_PRESETS)
+    ),
     carriers: {
       auspostPac: {
         enabled: typeof ovCarriers.auspostPac?.enabled === 'boolean'
@@ -114,7 +146,8 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
         apiKey: cleanString(ovCarriers.auspostPac?.apiKey, baseCarriers.auspostPac?.apiKey || ''),
         includeSatchels: typeof ovCarriers.auspostPac?.includeSatchels === 'boolean'
           ? ovCarriers.auspostPac.includeSatchels
-          : Boolean(baseCarriers.auspostPac?.includeSatchels ?? true)
+          : Boolean(baseCarriers.auspostPac?.includeSatchels ?? true),
+        orderUrl: cleanString(ovCarriers.auspostPac?.orderUrl, baseCarriers.auspostPac?.orderUrl || pacDefaultUrl)
       },
       auspostEparcel: {
         enabled: typeof ovCarriers.auspostEparcel?.enabled === 'boolean'
@@ -125,7 +158,8 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
         accountNumber: cleanString(ovCarriers.auspostEparcel?.accountNumber, baseCarriers.auspostEparcel?.accountNumber || ''),
         includeSurcharges: typeof ovCarriers.auspostEparcel?.includeSurcharges === 'boolean'
           ? ovCarriers.auspostEparcel.includeSurcharges
-          : Boolean(baseCarriers.auspostEparcel?.includeSurcharges ?? true)
+          : Boolean(baseCarriers.auspostEparcel?.includeSurcharges ?? true),
+        orderUrl: cleanString(ovCarriers.auspostEparcel?.orderUrl, baseCarriers.auspostEparcel?.orderUrl || eparcelDefaultUrl)
       },
       couriersPlease: {
         enabled: typeof cpOverride.enabled === 'boolean'
@@ -137,7 +171,8 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
         customBaseUrl: cleanString(cpOverride.customBaseUrl, baseCarriers.couriersPlease?.customBaseUrl || '').replace(/\/+$/, ''),
         validateLocation: typeof cpOverride.validateLocation === 'boolean'
           ? cpOverride.validateLocation
-          : Boolean(baseCarriers.couriersPlease?.validateLocation ?? true)
+          : Boolean(baseCarriers.couriersPlease?.validateLocation ?? true),
+        orderUrl: cleanString(cpOverride.orderUrl, baseCarriers.couriersPlease?.orderUrl || cpDefaultUrl)
       }
     },
     updates: {
@@ -204,6 +239,7 @@ export function parseEnvText(envText) {
     settingsPatch.carriers.couriersPlease.customBaseUrl = resolved.customBaseUrl;
     if (resolved.warning) warnings.push(resolved.warning);
   });
+  record('ORIGIN_STREET', (v) => { settingsPatch.origin.street = v; });
   record('ORIGIN_SUBURB', (v) => { settingsPatch.origin.suburb = v; });
   record('ORIGIN_STATE', (v) => { settingsPatch.origin.state = v; });
   record('ORIGIN_POSTCODE', (v) => { settingsPatch.origin.postcode = v; });
@@ -213,6 +249,20 @@ export function parseEnvText(envText) {
   return { settingsPatch, warnings, foundKeys };
 }
 
+function migrateStoredSettings(rawStored) {
+  const next = mergeSettings(DEFAULT_SETTINGS, rawStored);
+  // Migrate v1 default Greystanes origin (no street field) to 26/191 McCredie Rd, Smithfield NSW 2164
+  if (
+    !rawStored?.origin?.street &&
+    String(rawStored?.origin?.suburb || '').toUpperCase() === 'GREYSTANES' &&
+    String(rawStored?.origin?.postcode || '') === '2145'
+  ) {
+    next.origin = { ...DEFAULT_SETTINGS.origin };
+    return { settings: next, migrated: true };
+  }
+  return { settings: next, migrated: false };
+}
+
 /**
  * Load extension settings, hydrating once from gitignored config.local.json if present.
  * @returns {Promise<typeof DEFAULT_SETTINGS>}
@@ -220,7 +270,11 @@ export function parseEnvText(envText) {
 export async function loadSettings() {
   const stored = await chrome.storage.local.get([STORAGE_KEYS.SETTINGS, STORAGE_KEYS.INITIALIZED]);
   if (stored[STORAGE_KEYS.INITIALIZED] && stored[STORAGE_KEYS.SETTINGS]) {
-    return mergeSettings(DEFAULT_SETTINGS, stored[STORAGE_KEYS.SETTINGS]);
+    const { settings, migrated } = migrateStoredSettings(stored[STORAGE_KEYS.SETTINGS]);
+    if (migrated) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: settings });
+    }
+    return settings;
   }
 
   let initial = mergeSettings(DEFAULT_SETTINGS, stored[STORAGE_KEYS.SETTINGS] || {});

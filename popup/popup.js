@@ -1,27 +1,67 @@
-import { ALLOWED_ORIGIN } from '../src/shared/constants.js';
+import { ALLOWED_ORIGIN, CARRIER_IDS } from '../src/shared/constants.js';
 import { clearLastResult, loadLastResult, loadSettings } from '../src/shared/storage.js';
 
-const siteStatusEl = document.getElementById('site-status');
-const siteStatusTextEl = document.getElementById('site-status-text');
-const updateBannerEl = document.getElementById('update-banner');
+const helpBtn = document.getElementById('help-btn');
+const helpPopover = document.getElementById('help-popover');
 const checkUpdatesBtn = document.getElementById('check-updates-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
+const updateBannerEl = document.getElementById('update-banner');
+
+const presetSelect = document.getElementById('preset-select');
+const matchedPresetTag = document.getElementById('matched-preset-tag');
+const combineToggle = document.getElementById('combine-toggle');
+const singleSizeRow = document.getElementById('single-size-row');
+const multiItemsList = document.getElementById('multi-items-list');
+const combineSection = document.getElementById('combine-section');
+
+const dimLengthInput = document.getElementById('dim-length');
+const dimWidthInput = document.getElementById('dim-width');
+const dimHeightInput = document.getElementById('dim-height');
+const dimWeightInput = document.getElementById('dim-weight');
+
+const combineLengthInput = document.getElementById('combine-length');
+const combineWidthInput = document.getElementById('combine-width');
+const combineHeightInput = document.getElementById('combine-height');
+const combineWeightInput = document.getElementById('combine-weight');
+
 const compareBtn = document.getElementById('compare-btn');
+const offsiteNoteEl = document.getElementById('offsite-note');
 const compareProgress = document.getElementById('compare-progress');
-const emptyStateEl = document.getElementById('empty-state');
+
+const resultsRegion = document.getElementById('results-region');
 const globalErrorEl = document.getElementById('global-error');
-const shipmentSummaryEl = document.getElementById('shipment-summary');
-const cheapestBannerEl = document.getElementById('cheapest-banner');
-const carrierListEl = document.getElementById('carrier-list');
+const collectedSummaryEl = document.getElementById('collected-summary');
+const collectedAddressEl = document.getElementById('collected-address');
+const collectedWeightEl = document.getElementById('collected-weight');
+const collectedSizeEl = document.getElementById('collected-size');
+
+const cheapestTableEl = document.getElementById('cheapest-table');
+const cheapestServiceEl = document.getElementById('cheapest-service-title');
+const cheapestPriceEl = document.getElementById('cheapest-price-value');
+const cheapestGstEl = document.getElementById('cheapest-gst-label');
+
+const rateTableWrapEl = document.getElementById('rate-table-wrap');
+const rateTableBodyEl = document.getElementById('rate-table-body');
+const resultsActionsEl = document.getElementById('results-actions');
+const createOrderBtn = document.getElementById('create-order-btn');
+
 const clearBtn = document.getElementById('clear-btn');
 const versionBadgeEl = document.getElementById('version-badge');
 
-const lenInput = document.getElementById('override-length');
-const widthInput = document.getElementById('override-width');
-const heightInput = document.getElementById('override-height');
+const CARRIER_COLUMN_ORDER = [
+  CARRIER_IDS.AUSPOST_PAC,
+  CARRIER_IDS.AUSPOST_EPARCEL,
+  CARRIER_IDS.COURIERS_PLEASE
+];
 
+let currentSettings = null;
 let activeTab = null;
 let isComparing = false;
+let currentItems = [];
+let singleSizeEdited = false;
+let combinedWeightEdited = false;
+let selectedCarrierId = CARRIER_IDS.AUSPOST_PAC;
+let carrierOrderUrls = {};
 
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
@@ -35,285 +75,6 @@ function formatMoney(amount) {
   return `$${Number(amount || 0).toFixed(2)}`;
 }
 
-function buildErrorCardContent(container, errorObj) {
-  container.replaceChildren();
-
-  const title = document.createElement('div');
-  title.className = 'error-title';
-  const badge = document.createElement('span');
-  badge.setAttribute('role', 'img');
-  badge.setAttribute('aria-label', 'Error');
-  badge.textContent = '⚠';
-  const titleText = document.createElement('span');
-  titleText.textContent = errorObj.title || 'Unable to load rates';
-  title.append(badge, titleText);
-
-  const msg = document.createElement('p');
-  msg.className = 'error-msg';
-  msg.textContent = errorObj.message || 'An unexpected issue occurred.';
-
-  container.append(title, msg);
-
-  if (errorObj.suggestion) {
-    const sug = document.createElement('p');
-    sug.className = 'error-suggestion';
-    sug.textContent = errorObj.suggestion;
-    container.append(sug);
-  }
-
-  if (errorObj.actionType === 'open_settings') {
-    const actions = document.createElement('div');
-    actions.className = 'error-actions';
-    const settingsBtn = document.createElement('button');
-    settingsBtn.type = 'button';
-    settingsBtn.className = 'btn-secondary';
-    settingsBtn.textContent = 'Open Settings';
-    settingsBtn.addEventListener('click', () => {
-      chrome.runtime.openOptionsPage();
-    });
-    actions.append(settingsBtn);
-    container.append(actions);
-  }
-
-  if (errorObj.technicalDetail) {
-    const details = document.createElement('details');
-    details.className = 'error-tech';
-    const summary = document.createElement('summary');
-    summary.textContent = 'Technical details';
-    const code = document.createElement('code');
-    code.textContent = errorObj.technicalDetail;
-    details.append(summary, code);
-    container.append(details);
-  }
-}
-
-function renderSummaryChips(summary, warnings = []) {
-  shipmentSummaryEl.replaceChildren();
-  const dest = summary?.destination;
-  const chips = [
-    dest ? `To: ${[dest.suburb, dest.state, dest.postcode].filter(Boolean).join(' ')}` : '',
-    dest?.addressType ? dest.addressType : '',
-    summary ? `${summary.totalParcelCount} parcel${summary.totalParcelCount === 1 ? '' : 's'}` : '',
-    summary ? `${summary.totalWeightKg} kg total` : '',
-    summary?.dimensions
-      ? `${summary.dimensions.lengthCm}×${summary.dimensions.widthCm}×${summary.dimensions.heightCm} cm`
-      : ''
-  ].filter(Boolean);
-
-  for (const label of chips) {
-    const chip = document.createElement('span');
-    chip.className = 'summary-chip tabular-nums';
-    chip.textContent = label;
-    shipmentSummaryEl.append(chip);
-  }
-
-  for (const warningText of warnings) {
-    const warn = document.createElement('span');
-    warn.className = 'summary-chip';
-    warn.textContent = `Note: ${warningText}`;
-    shipmentSummaryEl.append(warn);
-  }
-
-  shipmentSummaryEl.hidden = false;
-}
-
-function renderCheapestBanner(cheapest) {
-  cheapestBannerEl.replaceChildren();
-  if (!cheapest || !cheapest.winners?.length) {
-    cheapestBannerEl.hidden = true;
-    return;
-  }
-
-  const left = document.createElement('div');
-  const kicker = document.createElement('div');
-  kicker.className = 'cheapest-kicker';
-  kicker.textContent = cheapest.winnerCount > 1 ? '★ Tied Cheapest Rate' : '★ Cheapest Rate';
-
-  const service = document.createElement('div');
-  service.className = 'cheapest-service';
-  const primary = cheapest.winners[0];
-  service.textContent = cheapest.winnerCount > 1
-    ? `${cheapest.winners.map((w) => `${w.carrierName} (${w.serviceName})`).join(' & ')}`
-    : `${primary.carrierName} — ${primary.serviceName}`;
-
-  left.append(kicker, service);
-
-  if (cheapest.savingsAmount !== null && cheapest.savingsAmount > 0) {
-    const savings = document.createElement('div');
-    savings.className = 'cheapest-savings tabular-nums';
-    savings.textContent = `Saves ${formatMoney(cheapest.savingsAmount)} vs next option (${formatMoney(cheapest.nextHighestPrice)})`;
-    left.append(savings);
-  }
-
-  const right = document.createElement('div');
-  right.className = 'cheapest-price-col';
-  const price = document.createElement('div');
-  price.className = 'cheapest-price tabular-nums';
-  price.textContent = `${formatMoney(cheapest.price)} AUD`;
-  const gst = document.createElement('div');
-  gst.className = 'cheapest-gst';
-  gst.textContent = cheapest.includesGst ? 'Incl. GST' : 'Excl. GST';
-  right.append(price, gst);
-
-  cheapestBannerEl.append(left, right);
-  cheapestBannerEl.hidden = false;
-}
-
-function renderCarrierCard(group) {
-  const card = document.createElement('article');
-  const hasWinner = group.rates?.some((r) => r.isCheapest);
-  card.className = `carrier-card${hasWinner ? ' carrier-card--cheapest' : ''}`;
-
-  const head = document.createElement('div');
-  head.className = 'carrier-card__head';
-
-  const title = document.createElement('h2');
-  title.className = 'carrier-card__title';
-  title.textContent = group.carrierName;
-
-  const meta = document.createElement('span');
-  meta.className = 'carrier-card__meta tabular-nums';
-  if (group.status === 'ok') {
-    meta.textContent = group.totalAvailableCount > group.rates.length
-      ? `Showing ${group.rates.length} of ${group.totalAvailableCount}`
-      : `${group.rates.length} rate${group.rates.length === 1 ? '' : 's'}`;
-  } else if (group.status === 'disabled') {
-    meta.textContent = 'Disabled';
-  } else if (group.status === 'error') {
-    meta.textContent = 'Unavailable';
-  } else {
-    meta.textContent = 'No rates';
-  }
-
-  head.append(title, meta);
-  card.append(head);
-
-  if (group.status === 'error' && group.error) {
-    const errBox = document.createElement('div');
-    errBox.className = 'carrier-card__error';
-    buildErrorCardContent(errBox, group.error);
-    card.append(errBox);
-    return card;
-  }
-
-  if (group.status === 'disabled') {
-    const empty = document.createElement('p');
-    empty.className = 'carrier-empty';
-    empty.textContent = 'Turned off in Settings.';
-    card.append(empty);
-    return card;
-  }
-
-  if (!group.rates?.length) {
-    const empty = document.createElement('p');
-    empty.className = 'carrier-empty';
-    empty.textContent = 'No eligible services returned for this parcel and destination.';
-    card.append(empty);
-    return card;
-  }
-
-  const list = document.createElement('ul');
-  list.className = 'rate-list';
-
-  for (const rate of group.rates) {
-    const row = document.createElement('li');
-    row.className = `rate-row${rate.isCheapest ? ' rate-row--cheapest' : ''}`;
-
-    const info = document.createElement('div');
-    info.className = 'rate-info';
-
-    const titleLine = document.createElement('div');
-    titleLine.className = 'rate-title-line';
-    const nameEl = document.createElement('span');
-    nameEl.className = 'rate-name';
-    nameEl.textContent = rate.serviceName;
-    titleLine.append(nameEl);
-
-    if (rate.isCheapest) {
-      const badge = document.createElement('span');
-      badge.className = 'cheapest-pill';
-      badge.textContent = '★ Cheapest';
-      titleLine.append(badge);
-    }
-
-    info.append(titleLine);
-
-    const subText = [rate.eta, rate.notes].filter(Boolean).join(' · ');
-    if (subText) {
-      const sub = document.createElement('div');
-      sub.className = 'rate-sub';
-      sub.textContent = subText;
-      info.append(sub);
-    }
-
-    const priceCol = document.createElement('div');
-    priceCol.className = 'rate-price-col';
-    const priceEl = document.createElement('div');
-    priceEl.className = 'rate-price tabular-nums';
-    priceEl.textContent = formatMoney(rate.displayPrice);
-    const gstEl = document.createElement('div');
-    gstEl.className = 'rate-gst';
-    gstEl.textContent = rate.includesGst ? 'inc GST' : 'ex GST';
-    priceCol.append(priceEl, gstEl);
-
-    row.append(info, priceCol);
-    list.append(row);
-  }
-
-  card.append(list);
-  return card;
-}
-
-function renderComparisonResult(result) {
-  emptyStateEl.hidden = true;
-  globalErrorEl.hidden = true;
-  renderSummaryChips(result.shipmentSummary, result.extractionWarnings);
-  renderCheapestBanner(result.cheapest);
-
-  carrierListEl.replaceChildren();
-  for (const group of result.carriers || []) {
-    carrierListEl.append(renderCarrierCard(group));
-  }
-  clearBtn.hidden = false;
-}
-
-function showGlobalError(errorObj) {
-  emptyStateEl.hidden = true;
-  shipmentSummaryEl.hidden = true;
-  cheapestBannerEl.hidden = true;
-  carrierListEl.replaceChildren();
-  buildErrorCardContent(globalErrorEl, errorObj);
-  globalErrorEl.hidden = false;
-  clearBtn.hidden = false;
-}
-
-function readDimensionOverride() {
-  const rawL = lenInput.value.trim();
-  const rawW = widthInput.value.trim();
-  const rawH = heightInput.value.trim();
-  if (!rawL && !rawW && !rawH) return null;
-
-  const lengthCm = Number.parseFloat(rawL || lenInput.placeholder);
-  const widthCm = Number.parseFloat(rawW || widthInput.placeholder);
-  const heightCm = Number.parseFloat(rawH || heightInput.placeholder);
-
-  if (
-    !Number.isFinite(lengthCm) || lengthCm <= 0 ||
-    !Number.isFinite(widthCm) || widthCm <= 0 ||
-    !Number.isFinite(heightCm) || heightCm <= 0
-  ) {
-    return { invalid: true };
-  }
-  return { lengthCm, widthCm, heightCm };
-}
-
-function resetCompareButton() {
-  isComparing = false;
-  compareBtn.disabled = !isAllowedTab();
-  compareBtn.textContent = 'Compare Rates';
-  compareProgress.hidden = true;
-}
-
 function isAllowedTab() {
   if (!activeTab?.url) return false;
   try {
@@ -323,27 +84,479 @@ function isAllowedTab() {
   }
 }
 
-function updateSiteBanner() {
-  if (isAllowedTab()) {
-    siteStatusEl.dataset.ready = 'true';
-    siteStatusTextEl.textContent = 'Ready on aimexaustralia.logicsync.app';
-    compareBtn.disabled = false;
-  } else {
-    siteStatusEl.dataset.ready = 'false';
-    siteStatusTextEl.textContent = 'Open an order on aimexaustralia.logicsync.app to compare';
-    compareBtn.disabled = true;
+function populatePresetSelect(presets) {
+  presetSelect.replaceChildren();
+  const autoOpt = document.createElement('option');
+  autoOpt.value = 'auto';
+  autoOpt.textContent = 'Auto match';
+  presetSelect.append(autoOpt);
+
+  for (const preset of presets || []) {
+    const opt = document.createElement('option');
+    opt.value = preset.id;
+    opt.textContent = `${preset.name} (${preset.weightKg}kg)`;
+    presetSelect.append(opt);
   }
+}
+
+function setDefaultSizingInputs() {
+  const defs = currentSettings?.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
+  dimLengthInput.value = String(defs.lengthCm);
+  dimWidthInput.value = String(defs.widthCm);
+  dimHeightInput.value = String(defs.heightCm);
+  dimWeightInput.value = '';
+  combineLengthInput.value = String(defs.lengthCm);
+  combineWidthInput.value = String(defs.widthCm);
+  combineHeightInput.value = String(defs.heightCm);
+  combineWeightInput.value = '';
+  matchedPresetTag.hidden = true;
+  presetSelect.value = 'auto';
+  singleSizeEdited = false;
+  combinedWeightEdited = false;
+}
+
+function sumCurrentItemWeights() {
+  if (!currentItems.length) return null;
+  let total = 0;
+  for (const item of currentItems) {
+    const qty = Math.max(1, Number.parseInt(String(item.quantity || 1), 10) || 1);
+    total += Number(item.weightKg || 0) * qty;
+  }
+  return Math.round(total * 1000) / 1000;
+}
+
+function renderMultiItemRows(items) {
+  multiItemsList.replaceChildren();
+  const defs = currentSettings?.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
+
+  items.forEach((item, index) => {
+    const row = document.createElement('div');
+    row.className = 'multi-item-row';
+    row.dataset.index = String(index);
+
+    const head = document.createElement('div');
+    head.className = 'multi-item-head';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'multi-item-name';
+    const qtySuffix = item.quantity > 1 ? ` ×${item.quantity}` : '';
+    nameEl.textContent = `${item.label || `Item ${index + 1}`}${qtySuffix}`;
+    head.append(nameEl);
+
+    if (item.matchedPresetName) {
+      const tag = document.createElement('span');
+      tag.className = 'preset-tag';
+      tag.textContent = item.matchedPresetName;
+      head.append(tag);
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'size-grid-4';
+
+    const fields = [
+      { key: 'lengthCm', label: 'L (cm)', val: item.lengthCm || defs.lengthCm },
+      { key: 'widthCm', label: 'W (cm)', val: item.widthCm || defs.widthCm },
+      { key: 'heightCm', label: 'H (cm)', val: item.heightCm || defs.heightCm },
+      { key: 'weightKg', label: 'Wt (kg)', val: item.weightKg }
+    ];
+
+    for (const f of fields) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mini-field';
+      const lbl = document.createElement('label');
+      const inputId = `item-${index}-${f.key}`;
+      lbl.htmlFor = inputId;
+      lbl.textContent = f.label;
+      const inp = document.createElement('input');
+      inp.id = inputId;
+      inp.type = 'text';
+      inp.inputMode = 'decimal';
+      inp.autocomplete = 'off';
+      inp.dataset.field = f.key;
+      inp.value = String(f.val ?? '');
+      wrap.append(lbl, inp);
+      grid.append(wrap);
+    }
+
+    row.append(head, grid);
+    multiItemsList.append(row);
+  });
+}
+
+function updateSizingLayout() {
+  const isCombined = combineToggle.checked;
+  const hasMultiple = currentItems.length > 1;
+
+  combineSection.hidden = !isCombined;
+  if (isCombined) {
+    singleSizeRow.hidden = true;
+    multiItemsList.hidden = true;
+    if (!combinedWeightEdited) {
+      const summed = sumCurrentItemWeights();
+      if (summed && summed > 0) combineWeightInput.value = String(summed);
+    }
+    return;
+  }
+
+  if (hasMultiple) {
+    singleSizeRow.hidden = true;
+    multiItemsList.hidden = false;
+  } else {
+    singleSizeRow.hidden = false;
+    multiItemsList.hidden = true;
+  }
+}
+
+function syncSizingFromResult(summary) {
+  const items = Array.isArray(summary?.items) ? summary.items : [];
+  currentItems = items;
+  const defs = currentSettings?.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
+
+  if (summary?.packagingMode === 'combined') {
+    combineToggle.checked = true;
+    combineLengthInput.value = String(summary.dimensions?.lengthCm || defs.lengthCm);
+    combineWidthInput.value = String(summary.dimensions?.widthCm || defs.widthCm);
+    combineHeightInput.value = String(summary.dimensions?.heightCm || defs.heightCm);
+    combineWeightInput.value = String(summary.totalWeightKg || '');
+  } else if (items.length > 1) {
+    combineToggle.checked = false;
+    renderMultiItemRows(items);
+    matchedPresetTag.hidden = true;
+  } else if (items.length === 1) {
+    combineToggle.checked = false;
+    const item = items[0];
+    dimLengthInput.value = String(item.lengthCm || defs.lengthCm);
+    dimWidthInput.value = String(item.widthCm || defs.widthCm);
+    dimHeightInput.value = String(item.heightCm || defs.heightCm);
+    dimWeightInput.value = String(item.weightKg || '');
+    if (item.matchedPresetName) {
+      matchedPresetTag.textContent = `Preset: ${item.matchedPresetName}`;
+      matchedPresetTag.hidden = false;
+      const matchingPreset = currentSettings?.parcelPresets?.find((p) => p.name === item.matchedPresetName);
+      if (matchingPreset && presetSelect.value === 'auto') {
+        presetSelect.value = matchingPreset.id;
+      }
+    } else {
+      matchedPresetTag.hidden = true;
+    }
+    singleSizeEdited = true;
+  }
+
+  updateSizingLayout();
+}
+
+function positiveNum(input) {
+  const n = Number.parseFloat(String(input?.value || '').trim());
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function collectUserOverrides() {
+  if (combineToggle.checked) {
+    const weightKg = positiveNum(combineWeightInput);
+    const lengthCm = positiveNum(combineLengthInput);
+    const widthCm = positiveNum(combineWidthInput);
+    const heightCm = positiveNum(combineHeightInput);
+
+    if (
+      (combineLengthInput.value.trim() && !lengthCm) ||
+      (combineWidthInput.value.trim() && !widthCm) ||
+      (combineHeightInput.value.trim() && !heightCm) ||
+      (combineWeightInput.value.trim() && !weightKg)
+    ) {
+      return { invalid: true };
+    }
+
+    return {
+      combine: true,
+      combined: {
+        lengthCm,
+        widthCm,
+        heightCm,
+        weightKg: combinedWeightEdited ? weightKg : null
+      }
+    };
+  }
+
+  if (currentItems.length > 1 && !multiItemsList.hidden) {
+    const rows = Array.from(multiItemsList.querySelectorAll('.multi-item-row'));
+    const itemsOverride = rows.map((row) => ({
+      lengthCm: positiveNum(row.querySelector('[data-field="lengthCm"]')),
+      widthCm: positiveNum(row.querySelector('[data-field="widthCm"]')),
+      heightCm: positiveNum(row.querySelector('[data-field="heightCm"]')),
+      weightKg: positiveNum(row.querySelector('[data-field="weightKg"]'))
+    }));
+    return { combine: false, itemsOverride };
+  }
+
+  if (singleSizeEdited || presetSelect.value !== 'auto') {
+    const lengthCm = positiveNum(dimLengthInput);
+    const widthCm = positiveNum(dimWidthInput);
+    const heightCm = positiveNum(dimHeightInput);
+    const weightKg = positiveNum(dimWeightInput);
+    if (
+      (dimLengthInput.value.trim() && !lengthCm) ||
+      (dimWidthInput.value.trim() && !widthCm) ||
+      (dimHeightInput.value.trim() && !heightCm) ||
+      (dimWeightInput.value.trim() && !weightKg)
+    ) {
+      return { invalid: true };
+    }
+    const chosenPreset = currentSettings?.parcelPresets?.find((p) => p.id === presetSelect.value);
+    return {
+      combine: false,
+      singleOverride: {
+        lengthCm,
+        widthCm,
+        heightCm,
+        weightKg,
+        presetName: chosenPreset ? chosenPreset.name : undefined
+      }
+    };
+  }
+
+  return null;
+}
+
+function buildErrorBox(container, err) {
+  container.replaceChildren();
+  const title = document.createElement('div');
+  title.className = 'error-box__title';
+  title.textContent = err.title || 'Unable to fetch rates';
+
+  const msg = document.createElement('div');
+  msg.className = 'error-box__msg';
+  msg.textContent = err.message || 'An unexpected error occurred.';
+  container.append(title, msg);
+
+  if (err.suggestion) {
+    const sug = document.createElement('div');
+    sug.className = 'error-box__sug';
+    sug.textContent = err.suggestion;
+    container.append(sug);
+  }
+
+  if (err.actionType === 'open_settings') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-secondary cell-error__action';
+    btn.textContent = 'Open Settings';
+    btn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+    container.append(btn);
+  }
+
+  if (err.technicalDetail) {
+    const details = document.createElement('details');
+    details.className = 'error-box__tech';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Technical details';
+    const code = document.createElement('code');
+    code.textContent = err.technicalDetail;
+    details.append(summary, code);
+    container.append(details);
+  }
+}
+
+function updateCreateOrderButton() {
+  const shortNames = {
+    [CARRIER_IDS.AUSPOST_PAC]: 'PAC',
+    [CARRIER_IDS.AUSPOST_EPARCEL]: 'eParcel',
+    [CARRIER_IDS.COURIERS_PLEASE]: 'CP'
+  };
+  const label = shortNames[selectedCarrierId] || 'Courier';
+  createOrderBtn.textContent = `Create Order (${label}) ↗`;
+  createOrderBtn.disabled = !carrierOrderUrls[selectedCarrierId];
+}
+
+function renderCollectedSummary(summary) {
+  const dest = summary?.destination;
+  const addrType = dest?.addressType === 'BUSINESS' ? 'Bus' : 'Res';
+  collectedAddressEl.textContent = dest
+    ? `${[dest.suburb, dest.state, dest.postcode].filter(Boolean).join(' ')} (${addrType})`
+    : '—';
+
+  const qtyNote = summary?.totalParcelCount > 1 ? ` (${summary.totalParcelCount}x)` : '';
+  collectedWeightEl.textContent = summary ? `${summary.totalWeightKg} kg${qtyNote}` : '—';
+
+  const items = summary?.items || [];
+  if (summary?.packagingMode !== 'combined' && items.length > 1) {
+    collectedSizeEl.textContent = `${items.length} products`;
+  } else if (summary?.dimensions) {
+    const d = summary.dimensions;
+    collectedSizeEl.textContent = `${d.lengthCm}×${d.widthCm}×${d.heightCm} cm`;
+  } else {
+    collectedSizeEl.textContent = '—';
+  }
+  collectedSummaryEl.hidden = false;
+}
+
+function renderCheapestTable(cheapest) {
+  if (!cheapest?.winners?.length) {
+    cheapestTableEl.hidden = true;
+    return;
+  }
+
+  const primary = cheapest.winners[0];
+  cheapestServiceEl.textContent = cheapest.winnerCount > 1
+    ? cheapest.winners.map((w) => w.shortWithCarrier || w.serviceName).join(' / ')
+    : (primary.shortWithCarrier || primary.serviceName);
+  cheapestPriceEl.textContent = `${formatMoney(cheapest.price)} AUD`;
+  cheapestGstEl.textContent = cheapest.includesGst ? 'incl. GST' : 'excl. GST';
+  cheapestTableEl.hidden = false;
+}
+
+function renderThreeColumnTable(carriers, maxPrices) {
+  rateTableBodyEl.replaceChildren();
+  const groupById = new Map((carriers || []).map((c) => [c.carrierId, c]));
+
+  let maxRows = 1;
+  for (const id of CARRIER_COLUMN_ORDER) {
+    const group = groupById.get(id);
+    if (group?.rates?.length) {
+      maxRows = Math.max(maxRows, group.rates.length);
+    }
+  }
+  maxRows = Math.min(maxRows, Math.max(1, maxPrices || 3));
+
+  const spannedDone = new Set();
+
+  for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
+    const tr = document.createElement('tr');
+
+    for (const carrierId of CARRIER_COLUMN_ORDER) {
+      if (spannedDone.has(carrierId)) continue;
+      const group = groupById.get(carrierId);
+      const td = document.createElement('td');
+
+      if (!group || group.status === 'disabled') {
+        td.rowSpan = maxRows;
+        spannedDone.add(carrierId);
+        const empty = document.createElement('div');
+        empty.className = 'cell-empty';
+        empty.textContent = 'Disabled';
+        td.append(empty);
+        tr.append(td);
+        continue;
+      }
+
+      if (group.status === 'error' && group.error) {
+        td.rowSpan = maxRows;
+        spannedDone.add(carrierId);
+        const errBox = document.createElement('div');
+        errBox.className = 'cell-error';
+        const title = document.createElement('div');
+        title.className = 'cell-error__title';
+        title.textContent = group.error.title || 'Unavailable';
+        const msg = document.createElement('div');
+        msg.className = 'cell-error__msg';
+        msg.textContent = group.error.message || 'Could not fetch rates.';
+        errBox.append(title, msg);
+
+        if (group.error.actionType === 'open_settings') {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-secondary cell-error__action';
+          btn.textContent = 'Settings';
+          btn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+          errBox.append(btn);
+        }
+        td.append(errBox);
+        tr.append(td);
+        continue;
+      }
+
+      const rate = group.rates?.[rowIdx];
+      if (!rate) {
+        const empty = document.createElement('div');
+        empty.className = 'cell-empty';
+        empty.textContent = rowIdx === 0 ? 'No rates' : '—';
+        td.append(empty);
+        tr.append(td);
+        continue;
+      }
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rate-cell-btn';
+      btn.setAttribute('aria-pressed', carrierId === selectedCarrierId && rowIdx === 0 ? 'true' : 'false');
+
+      const svc = document.createElement('span');
+      svc.className = 'cell-service';
+      svc.textContent = rate.shortInColumn || rate.serviceName;
+
+      const price = document.createElement('span');
+      price.className = 'cell-price';
+      price.textContent = formatMoney(rate.displayPrice);
+
+      btn.append(svc, price);
+      btn.addEventListener('click', () => {
+        for (const other of rateTableBodyEl.querySelectorAll('.rate-cell-btn')) {
+          other.setAttribute('aria-pressed', 'false');
+        }
+        btn.setAttribute('aria-pressed', 'true');
+        selectedCarrierId = carrierId;
+        updateCreateOrderButton();
+      });
+
+      td.append(btn);
+      tr.append(td);
+    }
+
+    rateTableBodyEl.append(tr);
+  }
+
+  rateTableWrapEl.hidden = false;
+}
+
+function renderComparisonResult(result) {
+  resultsRegion.hidden = false;
+  globalErrorEl.hidden = true;
+
+  carrierOrderUrls = {};
+  for (const c of result.carriers || []) {
+    if (c.orderUrl) carrierOrderUrls[c.carrierId] = c.orderUrl;
+  }
+
+  const winnerCarrierId = result.cheapest?.winners?.[0]?.carrierId;
+  selectedCarrierId = winnerCarrierId || CARRIER_COLUMN_ORDER.find((id) => carrierOrderUrls[id]) || CARRIER_IDS.AUSPOST_PAC;
+
+  syncSizingFromResult(result.shipmentSummary);
+  renderCollectedSummary(result.shipmentSummary);
+  renderCheapestTable(result.cheapest);
+  renderThreeColumnTable(result.carriers, result.maxPricesPerCourier);
+  updateCreateOrderButton();
+
+  resultsActionsEl.hidden = false;
+  clearBtn.hidden = false;
+}
+
+function showGlobalError(errObj) {
+  resultsRegion.hidden = false;
+  collectedSummaryEl.hidden = true;
+  cheapestTableEl.hidden = true;
+  rateTableWrapEl.hidden = true;
+  resultsActionsEl.hidden = true;
+  buildErrorBox(globalErrorEl, errObj);
+  globalErrorEl.hidden = false;
+  clearBtn.hidden = false;
+}
+
+function resetCompareButton() {
+  isComparing = false;
+  const allowed = isAllowedTab();
+  compareBtn.disabled = !allowed;
+  compareBtn.textContent = 'Compare Rates';
+  offsiteNoteEl.hidden = allowed;
+  compareProgress.hidden = true;
 }
 
 async function handleCompareClick() {
   if (isComparing || !activeTab?.id || !isAllowedTab()) return;
 
-  const dimensionOverride = readDimensionOverride();
-  if (dimensionOverride?.invalid) {
+  const userOverrides = collectUserOverrides();
+  if (userOverrides?.invalid) {
     showGlobalError({
-      title: 'Invalid parcel dimensions',
-      message: 'Length, width, and height must be positive numbers in centimetres.',
-      suggestion: 'Enter valid numbers (e.g. 20, 15, 10) or leave the dimension fields blank to use defaults.'
+      title: 'Invalid parcel values',
+      message: 'Length, width, height, and weight must be positive numbers.',
+      suggestion: 'Correct the Parcel Size fields and click Compare Rates again.'
     });
     return;
   }
@@ -358,14 +571,13 @@ async function handleCompareClick() {
     const response = await chrome.runtime.sendMessage({
       type: 'COMPARE_RATES',
       tabId: activeTab.id,
-      dimensionOverride
+      userOverrides
     });
 
     if (!response?.ok) {
       showGlobalError(response?.error || {
         title: 'Comparison failed',
-        message: 'Could not retrieve shipping rates for this order.',
-        suggestion: 'Verify the order page is loaded and try again.'
+        message: 'Could not retrieve shipping rates for this order.'
       });
       return;
     }
@@ -375,11 +587,9 @@ async function handleCompareClick() {
     showGlobalError({
       title: 'Extension communication error',
       message: 'Could not reach the extension background worker.',
-      suggestion: 'Try reloading the extension or reopening the popup.',
       technicalDetail: err instanceof Error ? err.message : String(err)
     });
   } finally {
-    // Immediately stop reading state and reset button back to Compare Rates
     resetCompareButton();
   }
 }
@@ -398,9 +608,9 @@ function renderUpdateBanner(update) {
     link.textContent = 'View on GitHub';
     text.append(link);
   } else if (update.status === 'up_to_date') {
-    text.textContent = `You are on the latest version (v${update.currentVersion}).`;
+    text.textContent = `Up to date (v${update.currentVersion}).`;
   } else {
-    text.textContent = update.error || 'Could not check GitHub for updates right now.';
+    text.textContent = update.error || 'Could not check GitHub for updates.';
   }
 
   updateBannerEl.append(text);
@@ -424,21 +634,15 @@ async function handleCheckUpdates() {
 }
 
 async function initPopup() {
-  const manifest = chrome.runtime.getManifest();
-  versionBadgeEl.textContent = `v${manifest.version}`;
-
-  const settings = await loadSettings();
-  applyTheme(settings.theme);
-
-  if (settings.defaultDimensions) {
-    lenInput.placeholder = String(settings.defaultDimensions.lengthCm);
-    widthInput.placeholder = String(settings.defaultDimensions.widthCm);
-    heightInput.placeholder = String(settings.defaultDimensions.heightCm);
-  }
+  versionBadgeEl.textContent = `v${chrome.runtime.getManifest().version}`;
+  currentSettings = await loadSettings();
+  applyTheme(currentSettings.theme);
+  populatePresetSelect(currentSettings.parcelPresets);
+  setDefaultSizingInputs();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   activeTab = tab || null;
-  updateSiteBanner();
+  resetCompareButton();
 
   if (isAllowedTab() && activeTab?.url) {
     const cached = await loadLastResult(activeTab.url);
@@ -448,18 +652,81 @@ async function initPopup() {
   }
 }
 
-openSettingsBtn.addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
+// Fallback for browsers lacking Invoker Commands API (Chrome < 135)
+if (!Object.hasOwn(HTMLButtonElement.prototype, 'commandForElement')) {
+  helpBtn.addEventListener('click', () => {
+    try {
+      helpPopover.togglePopover();
+    } catch {
+      helpPopover.hidden = !helpPopover.hidden;
+    }
+  });
+  const closeBtn = helpPopover.querySelector('.help-popover__close');
+  closeBtn?.addEventListener('click', () => {
+    try {
+      helpPopover.hidePopover();
+    } catch {
+      helpPopover.hidden = true;
+    }
+  });
+}
+
+presetSelect.addEventListener('change', () => {
+  const val = presetSelect.value;
+  if (val === 'auto') {
+    matchedPresetTag.hidden = true;
+    singleSizeEdited = false;
+    return;
+  }
+  const preset = currentSettings?.parcelPresets?.find((p) => p.id === val);
+  if (!preset) return;
+
+  combineToggle.checked = false;
+  currentItems = [];
+  updateSizingLayout();
+  dimLengthInput.value = String(preset.lengthCm);
+  dimWidthInput.value = String(preset.widthCm);
+  dimHeightInput.value = String(preset.heightCm);
+  dimWeightInput.value = String(preset.weightKg);
+  matchedPresetTag.textContent = `Preset: ${preset.name}`;
+  matchedPresetTag.hidden = false;
+  singleSizeEdited = true;
 });
+
+for (const input of [dimLengthInput, dimWidthInput, dimHeightInput, dimWeightInput]) {
+  input.addEventListener('input', () => {
+    singleSizeEdited = true;
+  });
+}
+
+combineWeightInput.addEventListener('input', () => {
+  combinedWeightEdited = true;
+});
+
+combineToggle.addEventListener('change', updateSizingLayout);
+openSettingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
 checkUpdatesBtn.addEventListener('click', handleCheckUpdates);
 compareBtn.addEventListener('click', handleCompareClick);
+
+createOrderBtn.addEventListener('click', async () => {
+  const url = carrierOrderUrls[selectedCarrierId] || currentSettings?.carriers?.[selectedCarrierId]?.orderUrl;
+  if (url) {
+    await chrome.tabs.create({ url });
+  }
+});
+
 clearBtn.addEventListener('click', async () => {
   await clearLastResult();
+  currentItems = [];
+  combineToggle.checked = false;
+  setDefaultSizingInputs();
+  updateSizingLayout();
+  resultsRegion.hidden = true;
   globalErrorEl.hidden = true;
-  shipmentSummaryEl.hidden = true;
-  cheapestBannerEl.hidden = true;
-  carrierListEl.replaceChildren();
-  emptyStateEl.hidden = false;
+  collectedSummaryEl.hidden = true;
+  cheapestTableEl.hidden = true;
+  rateTableWrapEl.hidden = true;
+  resultsActionsEl.hidden = true;
   clearBtn.hidden = true;
 });
 

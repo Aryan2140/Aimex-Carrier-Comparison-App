@@ -76,7 +76,7 @@ test('AusPost PAC normalizes single object, prefixes satchel/box labels, and sum
   };
 
   const rates = await fetchAusPostPacRates(order, settings, mockFetch);
-  assert.match(requestedUrl, /from_postcode=2145/);
+  assert.match(requestedUrl, /from_postcode=2164/);
   assert.match(requestedUrl, /to_postcode=4070/);
   assert.equal(requestedKey, 'pac-test-key');
   assert.equal(rates.length, 1);
@@ -240,12 +240,13 @@ test('compareRates marks cheapest globally, slices per courier, handles ties, an
   const result = await compareRates(SAMPLE_ORDER, settings, mockFetch);
   assert.equal(result.cheapest.price, 14.87);
   assert.equal(result.cheapest.winners[0].carrierId, 'auspostEparcel');
-  assert.equal(result.cheapest.nextHighestPrice, 20.25);
-  assert.equal(result.cheapest.savingsAmount, 5.38);
+  assert.equal(result.cheapest.winners[0].shortWithCarrier, 'eParcel: Parcel Post');
 
   const pacGroup = result.carriers.find((c) => c.carrierId === 'auspostPac');
   assert.equal(pacGroup.rates.length, 2);
+  assert.equal(pacGroup.rates[0].shortInColumn, 'Large');
   assert.equal(pacGroup.totalAvailableCount, 3);
+  assert.equal(pacGroup.orderUrl, 'https://mypost.auspost.com.au/business/');
 
   const cpGroup = result.carriers.find((c) => c.carrierId === 'couriersPlease');
   assert.equal(cpGroup.status, 'error');

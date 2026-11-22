@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Generate crisp Aimex Carrier Comparison extension PNG icons at 16, 48, and 128px."""
+"""Generate crisp 16x16, 48x48, and 128x128 extension icons from assets/logos/aimex-icon.png."""
 
 import math
 import os
 import struct
+import subprocess
+import tempfile
 import zlib
 
-BG_NAVY = (8, 20, 34, 255)
-BG_NAVY_HIGHLIGHT = (16, 36, 61, 255)
-GOLD = (245, 197, 24, 255)
-GOLD_BRIGHT = (253, 224, 71, 255)
+BG_NAVY = (8, 20, 34)
 
 
 def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
@@ -22,10 +21,9 @@ def write_rgba_png(path: str, width: int, height: int, pixels: bytearray) -> Non
     stride = width * 4
     raw = bytearray()
     for y in range(height):
-        raw.append(0)  # Filter type 0 (None)
+        raw.append(0)
         start = y * stride
         raw.extend(pixels[start : start + stride])
-
     ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
     idat = zlib.compress(bytes(raw), level=9)
     png = b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", ihdr) + png_chunk(b"IDAT", idat) + png_chunk(b"IEND", b"")
@@ -33,114 +31,137 @@ def write_rgba_png(path: str, width: int, height: int, pixels: bytearray) -> Non
         f.write(png)
 
 
-def point_in_triangle(px: float, py: float, a, b, c) -> bool:
-    ax, ay = a
-    bx, by = b
-    cx, cy = c
-    v0 = (cx - ax, cy - ay)
-    v1 = (bx - ax, by - ay)
-    v2 = (px - ax, py - ay)
-    dot00 = v0[0] * v0[0] + v0[1] * v0[1]
-    dot01 = v0[0] * v1[0] + v0[1] * v1[1]
-    dot02 = v0[0] * v2[0] + v0[1] * v2[1]
-    dot11 = v1[0] * v1[0] + v1[1] * v1[1]
-    dot12 = v1[0] * v2[0] + v1[1] * v2[1]
-    denom = dot00 * dot11 - dot01 * dot01
-    if denom == 0:
-        return False
-    inv = 1.0 / denom
-    u = (dot11 * dot02 - dot01 * dot12) * inv
-    v = (dot00 * dot12 - dot01 * dot02) * inv
-    return u >= 0 and v >= 0 and (u + v) <= 1
+def paeth(a: int, b: int, c: int) -> int:
+    p = a + b - c
+    pa = abs(p - a)
+    pb = abs(p - b)
+    pc = abs(p - c)
+    if pa <= pb and pa <= pc:
+        return a
+    if pb <= pc:
+        return b
+    return c
+
+
+def decode_rgba_png(path: str):
+    data = open(path, "rb").read()
+    pos = 8
+    width = height = 0
+    idat = bytearray()
+    while pos < len(data):
+        length = struct.unpack(">I", data[pos : pos + 4])[0]
+        ctype = data[pos + 4 : pos + 8]
+        chunk = data[pos + 8 : pos + 8 + length]
+        pos += 12 + length
+        if ctype == b"IHDR":
+            width, height, bit_depth, color_type = struct.unpack(">IIBB", chunk[:10])
+            if bit_depth != 8 or color_type != 6:
+                raise ValueError(f"Expected 8-bit RGBA PNG, got depth={bit_depth} type={color_type}")
+        elif ctype == b"IDAT":
+            idat.extend(chunk)
+        elif ctype == b"IEND":
+            break
+
+    raw = zlib.decompress(bytes(idat))
+    stride = width * 4
+    pixels = bytearray(width * height * 4)
+    in_pos = 0
+    for y in range(height):
+        ftype = raw[in_pos]
+        in_pos += 1
+        row_start = y * stride
+        prev_start = (y - 1) * stride
+        for x in range(stride):
+            val = raw[in_pos]
+            in_pos += 1
+            a = pixels[row_start + x - 4] if x >= 4 else 0
+            b = pixels[prev_start + x] if y > 0 else 0
+            c = pixels[prev_start + x - 4] if (y > 0 and x >= 4) else 0
+            if ftype == 1:
+                val = (val + a) & 0xFF
+            elif ftype == 2:
+                val = (val + b) & 0xFF
+            elif ftype == 3:
+                val = (val + ((a + b) >> 1)) & 0xFF
+            elif ftype == 4:
+                val = (val + paeth(a, b, c)) & 0xFF
+            pixels[row_start + x] = val
+    return width, height, pixels
 
 
 def rounded_rect_sdf(px: float, py: float, half: float, radius: float) -> float:
     qx = abs(px - 0.5) - (half - radius)
     qy = abs(py - 0.5) - (half - radius)
-    ox = max(qx, 0.0)
-    oy = max(qy, 0.0)
-    return math.hypot(ox, oy) + min(max(qx, qy), 0.0) - radius
+    return math.hypot(max(qx, 0.0), max(qy, 0.0)) + min(max(qx, qy), 0.0) - radius
 
 
-def sample_color(nx: float, ny: float):
-    # Rounded square container with slight margin
-    sdf = rounded_rect_sdf(nx, ny, half=0.46, radius=0.11)
-    if sdf > 0.0:
-        return (0, 0, 0, 0)
+def composite_icon(logo_path: str, size: int, out_path: str) -> None:
+    pad = max(2, round(size * 0.14))
+    max_w = size - pad * 2
+    max_h = max(8, round(max_w * (379 / 442)))
 
-    # Subtle vertical sheen on navy background
-    t = max(0.0, min(1.0, 1.0 - ny))
-    r = int(BG_NAVY[0] + (BG_NAVY_HIGHLIGHT[0] - BG_NAVY[0]) * (t * 0.65))
-    g = int(BG_NAVY[1] + (BG_NAVY_HIGHLIGHT[1] - BG_NAVY[1]) * (t * 0.65))
-    b = int(BG_NAVY[2] + (BG_NAVY_HIGHLIGHT[2] - BG_NAVY[2]) * (t * 0.65))
-    bg = (r, g, b, 255)
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        subprocess.check_call(
+            ["sips", "-z", str(max_h), str(max_w), logo_path, "--out", tmp_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        lw, lh, lpix = decode_rgba_png(tmp_path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
-    # Thin subtle gold inner border near edge
-    if -0.022 <= sdf <= -0.004:
-        return (245, 197, 24, 90)
-
-    # Aimex-inspired geometric delta/chevron emblem (split arrow/A-wing)
-    apex = (0.50, 0.17)
-    left_base = (0.19, 0.77)
-    right_base = (0.81, 0.77)
-    inner_notch = (0.50, 0.55)
-    wing_cut_left = (0.37, 0.77)
-    wing_cut_right = (0.63, 0.77)
-
-    in_outer = point_in_triangle(nx, ny, apex, left_base, right_base)
-    in_inner_cut = point_in_triangle(nx, ny, inner_notch, wing_cut_left, wing_cut_right)
-
-    # Crossbar accent representing rate comparison delta
-    in_bar = (0.39 <= nx <= 0.61) and (0.48 <= ny <= 0.55)
-
-    if (in_outer and not in_inner_cut) or in_bar:
-        if ny < 0.45:
-            return GOLD_BRIGHT
-        return GOLD
-
-    return bg
-
-
-def render_icon(size: int) -> bytearray:
-    ss = 4  # 4x4 supersampling for clean anti-aliased edges
-    pixels = bytearray(size * size * 4)
+    out = bytearray(size * size * 4)
     for y in range(size):
         for x in range(size):
-            ar = ag = ab = aa = 0
-            for sy in range(ss):
-                for sx in range(ss):
-                    nx = (x + (sx + 0.5) / ss) / size
-                    ny = (y + (sy + 0.5) / ss) / size
-                    sr, sg, sb, sa = sample_color(nx, ny)
-                    ar += sr * sa
-                    ag += sg * sa
-                    ab += sb * sa
-                    aa += sa
-            samples = ss * ss
-            out_a = aa // samples
-            if out_a == 0:
-                out_r = out_g = out_b = 0
-            else:
-                out_r = min(255, ar // aa)
-                out_g = min(255, ag // aa)
-                out_b = min(255, ab // aa)
+            nx = (x + 0.5) / size
+            ny = (y + 0.5) / size
+            sdf = rounded_rect_sdf(nx, ny, half=0.47, radius=0.12)
             idx = (y * size + x) * 4
-            pixels[idx] = out_r
-            pixels[idx + 1] = out_g
-            pixels[idx + 2] = out_b
-            pixels[idx + 3] = out_a
-    return pixels
+            if sdf <= 0:
+                out[idx] = BG_NAVY[0]
+                out[idx + 1] = BG_NAVY[1]
+                out[idx + 2] = BG_NAVY[2]
+                out[idx + 3] = 255
+
+    ox = (size - lw) // 2
+    oy = (size - lh) // 2
+    for ly in range(lh):
+        dy = oy + ly
+        if dy < 0 or dy >= size:
+            continue
+        for lx in range(lw):
+            dx = ox + lx
+            if dx < 0 or dx >= size:
+                continue
+            lidx = (ly * lw + lx) * 4
+            sa = lpix[lidx + 3] / 255.0
+            if sa <= 0:
+                continue
+            didx = (dy * size + dx) * 4
+            da = out[didx + 3] / 255.0
+            out_a = sa + da * (1.0 - sa)
+            if out_a > 0:
+                for c in range(3):
+                    out[didx + c] = min(
+                        255,
+                        round((lpix[lidx + c] * sa + out[didx + c] * da * (1.0 - sa)) / out_a),
+                    )
+                out[didx + 3] = min(255, round(out_a * 255))
+
+    write_rgba_png(out_path, size, size, out)
+    print(f"Generated {out_path} ({size}x{size})")
 
 
 def main() -> None:
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logo_path = os.path.join(root, "assets", "logos", "aimex-icon.png")
     icons_dir = os.path.join(root, "icons")
     os.makedirs(icons_dir, exist_ok=True)
     for size in (16, 48, 128):
-        out_path = os.path.join(icons_dir, f"icon-{size}.png")
-        pixels = render_icon(size)
-        write_rgba_png(out_path, size, size, pixels)
-        print(f"Generated {out_path} ({size}x{size})")
+        composite_icon(logo_path, size, os.path.join(icons_dir, f"icon-{size}.png"))
 
 
 if __name__ == "__main__":

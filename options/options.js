@@ -15,6 +15,7 @@ const toast = createToastManager(toastRegion);
 const extVersionEl = document.getElementById('ext-version');
 const maxPricesInput = document.getElementById('max-prices');
 const includeGstInput = document.getElementById('include-gst');
+const originStreetInput = document.getElementById('origin-street');
 const originSuburbInput = document.getElementById('origin-suburb');
 const originStateSelect = document.getElementById('origin-state');
 const originPostcodeInput = document.getElementById('origin-postcode');
@@ -22,19 +23,25 @@ const lengthInput = document.getElementById('default-length');
 const widthInput = document.getElementById('default-width');
 const heightInput = document.getElementById('default-height');
 
+const presetsTbody = document.getElementById('presets-tbody');
+const addPresetBtn = document.getElementById('add-preset-btn');
+
 const pacEnabledInput = document.getElementById('pac-enabled');
 const pacApiKeyInput = document.getElementById('pac-api-key');
+const pacOrderUrlInput = document.getElementById('pac-order-url');
 const pacSatchelsInput = document.getElementById('pac-satchels');
 
 const eparcelEnabledInput = document.getElementById('eparcel-enabled');
 const eparcelApiKeyInput = document.getElementById('eparcel-api-key');
 const eparcelApiPasswordInput = document.getElementById('eparcel-api-password');
 const eparcelAccountInput = document.getElementById('eparcel-account');
+const eparcelOrderUrlInput = document.getElementById('eparcel-order-url');
 const eparcelSurchargesInput = document.getElementById('eparcel-surcharges');
 
 const cpEnabledInput = document.getElementById('cp-enabled');
 const cpAccountInput = document.getElementById('cp-account');
 const cpApiKeyInput = document.getElementById('cp-api-key');
+const cpOrderUrlInput = document.getElementById('cp-order-url');
 const cpCustomUrlWrap = document.getElementById('cp-custom-url-wrap');
 const cpCustomUrlInput = document.getElementById('cp-custom-url');
 const cpPortalWarningEl = document.getElementById('cp-portal-warning');
@@ -85,13 +92,80 @@ function updateCouriersPleaseCustomUrlVisibility() {
   cpPortalWarningEl.hidden = !/apidev\.couriersplease\.com\.au/i.test(customVal);
 }
 
+function appendPresetRow(preset = { id: '', name: '', weightKg: '', lengthCm: '', widthCm: '', heightCm: '' }) {
+  const tr = document.createElement('tr');
+  tr.dataset.presetId = preset.id || '';
+
+  const fields = [
+    { cls: 'preset-name', type: 'text', label: 'Product match', val: preset.name },
+    { cls: 'preset-weight', type: 'text', mode: 'decimal', label: 'Weight in kg', val: preset.weightKg },
+    { cls: 'preset-length', type: 'text', mode: 'decimal', label: 'Length in cm', val: preset.lengthCm },
+    { cls: 'preset-width', type: 'text', mode: 'decimal', label: 'Width in cm', val: preset.widthCm },
+    { cls: 'preset-height', type: 'text', mode: 'decimal', label: 'Height in cm', val: preset.heightCm }
+  ];
+
+  for (const f of fields) {
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = f.type;
+    if (f.mode) inp.inputMode = f.mode;
+    inp.className = f.cls;
+    inp.setAttribute('aria-label', f.label);
+    inp.autocomplete = 'off';
+    inp.value = f.val !== undefined && f.val !== null ? String(f.val) : '';
+    td.append(inp);
+    tr.append(td);
+  }
+
+  const actionTd = document.createElement('td');
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-secondary remove-preset-btn';
+  removeBtn.setAttribute('aria-label', `Remove preset ${preset.name || ''}`.trim());
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', () => tr.remove());
+  actionTd.append(removeBtn);
+  tr.append(actionTd);
+
+  presetsTbody.append(tr);
+}
+
+function renderPresetsTable(presets) {
+  presetsTbody.replaceChildren();
+  for (const preset of presets || []) {
+    appendPresetRow(preset);
+  }
+}
+
+function collectPresets() {
+  const rows = Array.from(presetsTbody.querySelectorAll('tr'));
+  const list = [];
+  for (const row of rows) {
+    const name = row.querySelector('.preset-name')?.value.trim();
+    const weightKg = Number.parseFloat(row.querySelector('.preset-weight')?.value.trim());
+    const lengthCm = Number.parseFloat(row.querySelector('.preset-length')?.value.trim());
+    const widthCm = Number.parseFloat(row.querySelector('.preset-width')?.value.trim());
+    const heightCm = Number.parseFloat(row.querySelector('.preset-height')?.value.trim());
+    if (!name || !(weightKg > 0) || !(lengthCm > 0) || !(widthCm > 0) || !(heightCm > 0)) continue;
+    list.push({
+      id: row.dataset.presetId || undefined,
+      name,
+      weightKg,
+      lengthCm,
+      widthCm,
+      heightCm
+    });
+  }
+  return list;
+}
+
 function populateForm(settings) {
   maxPricesInput.value = String(settings.maxPricesPerCourier);
   includeGstInput.checked = Boolean(settings.includeGst);
-  setRadioValue('packagingMode', settings.packagingMode);
   setRadioValue('theme', settings.theme);
   applyTheme(settings.theme);
 
+  originStreetInput.value = settings.origin.street || '';
   originSuburbInput.value = settings.origin.suburb;
   originStateSelect.value = settings.origin.state;
   originPostcodeInput.value = settings.origin.postcode;
@@ -100,19 +174,24 @@ function populateForm(settings) {
   widthInput.value = String(settings.defaultDimensions.widthCm);
   heightInput.value = String(settings.defaultDimensions.heightCm);
 
+  renderPresetsTable(settings.parcelPresets);
+
   pacEnabledInput.checked = Boolean(settings.carriers.auspostPac.enabled);
   pacApiKeyInput.value = settings.carriers.auspostPac.apiKey;
+  pacOrderUrlInput.value = settings.carriers.auspostPac.orderUrl || '';
   pacSatchelsInput.checked = Boolean(settings.carriers.auspostPac.includeSatchels);
 
   eparcelEnabledInput.checked = Boolean(settings.carriers.auspostEparcel.enabled);
   eparcelApiKeyInput.value = settings.carriers.auspostEparcel.apiKey;
   eparcelApiPasswordInput.value = settings.carriers.auspostEparcel.apiPassword;
   eparcelAccountInput.value = settings.carriers.auspostEparcel.accountNumber;
+  eparcelOrderUrlInput.value = settings.carriers.auspostEparcel.orderUrl || '';
   eparcelSurchargesInput.checked = Boolean(settings.carriers.auspostEparcel.includeSurcharges);
 
   cpEnabledInput.checked = Boolean(settings.carriers.couriersPlease.enabled);
   cpAccountInput.value = settings.carriers.couriersPlease.account;
   cpApiKeyInput.value = settings.carriers.couriersPlease.apiKey;
+  cpOrderUrlInput.value = settings.carriers.couriersPlease.orderUrl || '';
   setRadioValue('cpEnvironment', settings.carriers.couriersPlease.environment);
   cpCustomUrlInput.value = settings.carriers.couriersPlease.customBaseUrl;
   cpValidateLocationInput.checked = Boolean(settings.carriers.couriersPlease.validateLocation);
@@ -126,10 +205,10 @@ function collectFormSettings() {
   return {
     maxPricesPerCourier: Number.parseInt(maxPricesInput.value.trim(), 10),
     includeGst: includeGstInput.checked,
-    packagingMode: getRadioValue('packagingMode', 'per_unit'),
     theme: getRadioValue('theme', 'system'),
     origin: {
-      suburb: originSuburbInput.value.trim().toUpperCase(),
+      street: originStreetInput.value.trim(),
+      suburb: originSuburbInput.value.trim(),
       state: originStateSelect.value,
       postcode: originPostcodeInput.value.trim()
     },
@@ -138,10 +217,12 @@ function collectFormSettings() {
       widthCm: Number.parseFloat(widthInput.value.trim()),
       heightCm: Number.parseFloat(heightInput.value.trim())
     },
+    parcelPresets: collectPresets(),
     carriers: {
       auspostPac: {
         enabled: pacEnabledInput.checked,
         apiKey: pacApiKeyInput.value.trim(),
+        orderUrl: pacOrderUrlInput.value.trim(),
         includeSatchels: pacSatchelsInput.checked
       },
       auspostEparcel: {
@@ -149,12 +230,14 @@ function collectFormSettings() {
         apiKey: eparcelApiKeyInput.value.trim(),
         apiPassword: eparcelApiPasswordInput.value.trim(),
         accountNumber: eparcelAccountInput.value.trim(),
+        orderUrl: eparcelOrderUrlInput.value.trim(),
         includeSurcharges: eparcelSurchargesInput.checked
       },
       couriersPlease: {
         enabled: cpEnabledInput.checked,
         account: cpAccountInput.value.trim(),
         apiKey: cpApiKeyInput.value.trim(),
+        orderUrl: cpOrderUrlInput.value.trim(),
         environment: getRadioValue('cpEnvironment', 'production'),
         customBaseUrl: cpCustomUrlInput.value.trim(),
         validateLocation: cpValidateLocationInput.checked
@@ -183,7 +266,7 @@ function wirePasswordToggles() {
 async function runCarrierTest(carrierId, button, statusEl) {
   button.disabled = true;
   statusEl.dataset.tone = '';
-  statusEl.textContent = 'Testing connection...';
+  statusEl.textContent = 'Testing...';
 
   try {
     const currentSettings = mergeSettings(await loadSettings(), collectFormSettings());
@@ -194,7 +277,7 @@ async function runCarrierTest(carrierId, button, statusEl) {
     });
     if (response?.ok) {
       statusEl.dataset.tone = 'success';
-      statusEl.textContent = response.summary || 'Connection succeeded.';
+      statusEl.textContent = response.summary || 'Connected.';
     } else {
       statusEl.dataset.tone = 'error';
       const err = response?.error;
@@ -212,7 +295,7 @@ async function applyEnvImport(rawText) {
   const { settingsPatch, warnings, foundKeys } = parseEnvText(rawText);
   if (!foundKeys.length) {
     envImportStatus.dataset.tone = 'error';
-    envImportStatus.textContent = 'No recognized Aimex carrier variables were found in that .env text.';
+    envImportStatus.textContent = 'No recognized variables found in .env text.';
     return;
   }
 
@@ -223,8 +306,8 @@ async function applyEnvImport(rawText) {
 
   envImportStatus.dataset.tone = 'success';
   const warnText = warnings.length ? ` Note: ${warnings.join(' ')}` : '';
-  envImportStatus.textContent = `Imported ${foundKeys.length} setting${foundKeys.length === 1 ? '' : 's'} from .env.${warnText}`;
-  toast.show('Imported credentials from .env and saved locally.', { tone: 'success' });
+  envImportStatus.textContent = `Imported ${foundKeys.length} setting${foundKeys.length === 1 ? '' : 's'}.${warnText}`;
+  toast.show('Imported credentials from .env.', { tone: 'success' });
 }
 
 async function handleCheckUpdates() {
@@ -287,18 +370,24 @@ async function initOptionsPage() {
   }
   cpCustomUrlInput.addEventListener('input', updateCouriersPleaseCustomUrlVisibility);
 
+  addPresetBtn.addEventListener('click', () => {
+    appendPresetRow();
+    const lastInput = presetsTbody.querySelector('tr:last-child input.preset-name');
+    if (lastInput instanceof HTMLElement) lastInput.focus();
+  });
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!form.checkValidity()) {
       const firstInvalid = form.querySelector(':invalid');
       if (firstInvalid instanceof HTMLElement) firstInvalid.focus();
-      toast.show('Please correct the highlighted fields before saving.', { tone: 'error' });
+      toast.show('Fix highlighted fields before saving.', { tone: 'error' });
       return;
     }
 
     const saved = await saveSettings(collectFormSettings());
     populateForm(saved);
-    toast.show('Settings saved locally.', { tone: 'success' });
+    toast.show('Settings saved.', { tone: 'success' });
   });
 
   testPacBtn.addEventListener('click', () => runCarrierTest(CARRIER_IDS.AUSPOST_PAC, testPacBtn, testPacResult));
@@ -327,11 +416,11 @@ async function initOptionsPage() {
     if (resetDialog.returnValue === 'reset-local') {
       const next = await resetSettings({ useLocalConfig: true });
       populateForm(next);
-      toast.show('Restored defaults and reloaded local configuration.', { tone: 'success' });
+      toast.show('Reloaded local configuration.', { tone: 'success' });
     } else if (resetDialog.returnValue === 'reset-blank') {
       const next = await resetSettings({ useLocalConfig: false });
       populateForm(next);
-      toast.show('All settings and saved keys cleared.', { tone: 'info' });
+      toast.show('Settings cleared.', { tone: 'info' });
     }
   });
 }

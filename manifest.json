@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Aimex Carrier Rate Comparison",
+  "name": "Carrier Comparison Companion",
   "version": "1.0.0",
   "description": "Compare Australia Post PAC, Australia Post eParcel, and CouriersPlease shipping rates on Aimex LogicSync order pages.",
   "icons": {
@@ -10,7 +10,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Aimex Carrier Comparison",
+    "default_title": "Carrier Comparison Companion",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",

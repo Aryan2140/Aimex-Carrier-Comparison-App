@@ -90,14 +90,15 @@ export function assertDomesticAuDestination(destination, carrierId) {
 }
 
 /**
- * Resolve effective parcel groups from extracted order items, optional runtime dimension
- * override, and user packaging preferences.
+ * Resolve effective parcel groups from extracted order items, optional combined or dimension
+ * overrides, and packaging preferences.
  * @param {object} order
  * @param {object} settings
  * @returns {{ parcels: Array<{ label: string, weightKg: number, quantity: number, lengthCm: number, widthCm: number, heightCm: number }>, totalWeightKg: number, totalParcelCount: number }}
  */
 export function buildOrderParcels(order, settings) {
   const dimsOverride = order?.dimensionOverride || null;
+  const combinedOverride = order?.combinedOverride || null;
   const fallbackDims = settings?.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
   const useDims = (item) => ({
     lengthCm: Number(dimsOverride?.lengthCm || item?.lengthCm || fallbackDims.lengthCm),
@@ -106,10 +107,11 @@ export function buildOrderParcels(order, settings) {
   });
 
   const rawItems = Array.isArray(order?.items) ? order.items : [];
-  const packagingMode = settings?.packagingMode === 'combined' ? 'combined' : 'per_unit';
+  const packagingMode = order?.packagingModeOverride
+    || (settings?.packagingMode === 'combined' ? 'combined' : 'per_unit');
 
   if (packagingMode === 'combined') {
-    let totalWeightKg = 0;
+    let summedWeightKg = 0;
     let maxL = 0;
     let maxW = 0;
     let totalH = 0;
@@ -118,7 +120,7 @@ export function buildOrderParcels(order, settings) {
     for (const item of rawItems) {
       const qty = Math.max(1, Number.parseInt(String(item.quantity || 1), 10) || 1);
       const w = Number(item.weightKg || 0);
-      totalWeightKg += w * qty;
+      summedWeightKg += w * qty;
       const d = useDims(item);
       if (dimsOverride || (item.lengthCm && item.widthCm && item.heightCm)) {
         hasExplicitDims = true;
@@ -128,14 +130,24 @@ export function buildOrderParcels(order, settings) {
       }
     }
 
-    const finalWeight = Math.round(totalWeightKg * 10000) / 10000;
-    const dims = hasExplicitDims
-      ? { lengthCm: maxL, widthCm: maxW, heightCm: totalH }
-      : {
-          lengthCm: Number(fallbackDims.lengthCm),
-          widthCm: Number(fallbackDims.widthCm),
-          heightCm: Number(fallbackDims.heightCm)
-        };
+    const customWeight = Number(combinedOverride?.weightKg);
+    const finalWeight = Number.isFinite(customWeight) && customWeight > 0
+      ? Math.round(customWeight * 10000) / 10000
+      : Math.round(summedWeightKg * 10000) / 10000;
+
+    const dims = (combinedOverride?.lengthCm && combinedOverride?.widthCm && combinedOverride?.heightCm)
+      ? {
+          lengthCm: Number(combinedOverride.lengthCm),
+          widthCm: Number(combinedOverride.widthCm),
+          heightCm: Number(combinedOverride.heightCm)
+        }
+      : hasExplicitDims
+        ? { lengthCm: maxL, widthCm: maxW, heightCm: totalH }
+        : {
+            lengthCm: Number(fallbackDims.lengthCm),
+            widthCm: Number(fallbackDims.widthCm),
+            heightCm: Number(fallbackDims.heightCm)
+          };
 
     return {
       parcels: [{
