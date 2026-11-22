@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Aimex Carrier Rate Comparison",
+  "version": "1.0.0",
+  "description": "Compare Australia Post PAC, Australia Post eParcel, and CouriersPlease shipping rates on Aimex LogicSync order pages.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Aimex Carrier Comparison",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://aimexaustralia.logicsync.app/*",
+    "https://digitalapi.auspost.com.au/*",
+    "https://api.couriersplease.com.au/*",
+    "https://api-test.couriersplease.com.au/*",
+    "https://api.github.com/*",
+    "https://raw.githubusercontent.com/*"
+  ]
+}

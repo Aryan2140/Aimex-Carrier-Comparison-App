@@ -1,0 +1,42 @@
+{
+  "maxPricesPerCourier": 3,
+  "includeGst": true,
+  "packagingMode": "per_unit",
+  "theme": "system",
+  "origin": {
+    "suburb": "GREYSTANES",
+    "state": "NSW",
+    "postcode": "2145"
+  },
+  "defaultDimensions": {
+    "lengthCm": 20,
+    "widthCm": 15,
+    "heightCm": 10
+  },
+  "carriers": {
+    "auspostPac": {
+      "enabled": true,
+      "apiKey": "",
+      "includeSatchels": true
+    },
+    "auspostEparcel": {
+      "enabled": true,
+      "apiKey": "",
+      "apiPassword": "",
+      "accountNumber": "",
+      "includeSurcharges": true
+    },
+    "couriersPlease": {
+      "enabled": true,
+      "account": "",
+      "apiKey": "",
+      "environment": "production",
+      "customBaseUrl": "",
+      "validateLocation": true
+    }
+  },
+  "updates": {
+    "repoUrl": "https://github.com/Aryan2140/Aimex-Carrier-Comparison-App",
+    "githubToken": ""
+  }
+}

@@ -1,0 +1,13 @@
+# Local secrets & private API credentials — NEVER commit
+.env
+.env.*
+!.env.example
+config.local.json
+
+# Packaging / keys / OS artifacts
+*.pem
+*.crx
+*.zip
+.DS_Store
+Thumbs.db
+node_modules/
