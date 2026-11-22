@@ -75,11 +75,11 @@ test('applyPresetsToItems overrides page weight/size on match and combines weigh
 test('formatShortServiceLabel shortens courier service names cleanly', () => {
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_PAC, 'AUS_PARCEL_REGULAR_PACKAGE_SMALL', 'Parcel Post — Small'),
-    { shortInColumn: 'Small', shortWithCarrier: 'PAC: Small' }
+    { shortInColumn: 'Small', shortWithCarrier: 'AusPost: Small' }
   );
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_PAC, 'AUS_PARCEL_EXPRESS', 'Express Post (Own Packaging)'),
-    { shortInColumn: 'Express', shortWithCarrier: 'PAC: Express' }
+    { shortInColumn: 'Express', shortWithCarrier: 'AusPost: Express' }
   );
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_EPARCEL, '3D55', 'Parcel Post + Signature'),

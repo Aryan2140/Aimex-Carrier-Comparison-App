@@ -11,11 +11,13 @@
 <body>
   <header class="settings-header">
     <div class="header-inner">
-      <div class="brand-lockup">
+      <div class="header-side header-side--left">
         <img src="../assets/logos/aimex-wordmark.png" alt="Aimex" height="30" class="brand-wordmark">
-        <h1>Settings</h1>
       </div>
-      <span id="ext-version" class="version-pill tabular-nums">v1.0.0</span>
+      <h1 class="header-title">Settings</h1>
+      <div class="header-side header-side--right">
+        <span id="ext-version" class="version-pill tabular-nums">v1.1.1</span>
+      </div>
     </div>
   </header>
 
@@ -203,20 +205,20 @@
         <legend>
           <span class="legend-brand">
             <img src="../assets/logos/auspost-pac.jpg" alt="" width="20" height="20" class="legend-logo">
-            Australia Post PAC
+            AusPost
           </span>
         </legend>
 
         <div class="checkbox-row">
           <input id="pac-enabled" name="pacEnabled" type="checkbox">
-          <label for="pac-enabled">Enable Australia Post PAC</label>
+          <label for="pac-enabled">Enable AusPost</label>
         </div>
 
         <div class="field-group">
           <label for="pac-api-key">API Key (<code>AUTH-KEY</code>)</label>
           <div class="secret-input-wrap">
             <input id="pac-api-key" name="pacApiKey" type="password" autocorrect="off" autocapitalize="none" spellcheck="false">
-            <button type="button" class="toggle-secret-btn btn-secondary" data-target="pac-api-key" aria-pressed="false" aria-label="Show PAC API Key">Show</button>
+            <button type="button" class="toggle-secret-btn btn-secondary" data-target="pac-api-key" aria-pressed="false" aria-label="Show AusPost API Key">Show</button>
           </div>
         </div>
 
@@ -234,7 +236,7 @@
         </div>
 
         <div class="test-bar">
-          <button type="button" id="test-pac-btn" class="btn-secondary">Test PAC</button>
+          <button type="button" id="test-pac-btn" class="btn-secondary">Test AusPost</button>
           <span id="test-pac-result" class="test-result" role="status"></span>
         </div>
       </fieldset>
@@ -243,13 +245,13 @@
         <legend>
           <span class="legend-brand">
             <img src="../assets/logos/auspost-eparcel.jpg" alt="" width="20" height="20" class="legend-logo">
-            Australia Post eParcel
+            eParcel
           </span>
         </legend>
 
         <div class="checkbox-row">
           <input id="eparcel-enabled" name="eparcelEnabled" type="checkbox">
-          <label for="eparcel-enabled">Enable Australia Post eParcel</label>
+          <label for="eparcel-enabled">Enable eParcel</label>
         </div>
 
         <div class="grid-2">

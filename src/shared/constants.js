@@ -23,15 +23,15 @@ export const CARRIER_IDS = {
 export const CARRIER_META = {
   [CARRIER_IDS.AUSPOST_PAC]: {
     id: CARRIER_IDS.AUSPOST_PAC,
-    name: 'Australia Post PAC',
-    shortName: 'PAC',
-    prefix: 'PAC',
+    name: 'AusPost',
+    shortName: 'AusPost',
+    prefix: 'AusPost',
     logo: '../assets/logos/auspost-pac.jpg',
     maxWeightKg: 22
   },
   [CARRIER_IDS.AUSPOST_EPARCEL]: {
     id: CARRIER_IDS.AUSPOST_EPARCEL,
-    name: 'Australia Post eParcel',
+    name: 'eParcel',
     shortName: 'eParcel',
     prefix: 'eParcel',
     logo: '../assets/logos/auspost-eparcel.jpg',

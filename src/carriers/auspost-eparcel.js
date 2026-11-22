@@ -257,7 +257,7 @@ export async function fetchAusPostEparcelRates(order, settings, fetchImpl = fetc
 
       return {
         carrierId,
-        carrierName: 'Australia Post eParcel',
+        carrierName: 'eParcel',
         serviceCode: productId,
         serviceName,
         priceIncGst,
@@ -274,7 +274,7 @@ export async function fetchAusPostEparcelRates(order, settings, fetchImpl = fetc
     const gst = round2(fallback.gst);
     return {
       carrierId,
-      carrierName: 'Australia Post eParcel',
+      carrierName: 'eParcel',
       serviceCode: productId,
       serviceName,
       priceIncGst,
