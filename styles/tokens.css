@@ -1,0 +1,445 @@
+/* Shared modern CSS architecture: layered cascade, light-dark() tokens, accessible forms & disclosures */
+@layer reset, tokens, base, components, utilities;
+
+@layer reset {
+  html {
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body, h1, h2, h3, p, ul, ol, dl, dd, figure, fieldset {
+    margin: 0;
+  }
+
+  ul, ol {
+    padding-inline-start: 0;
+    list-style: none;
+  }
+
+  button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  img, svg {
+    display: block;
+    max-inline-size: 100%;
+  }
+}
+
+@layer tokens {
+  :root {
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Raw light palette */
+    --bg-canvas-light: #f4f6f9;
+    --bg-surface-light: #ffffff;
+    --bg-subtle-light: #edf1f7;
+    --bg-header-light: #081422;
+    --text-primary-light: #0f172a;
+    --text-secondary-light: #475569;
+    --text-muted-light: #64748b;
+    --border-light: #d5dde8;
+    --border-strong-light: #94a3b8;
+    --accent-gold-light: #f5c518;
+    --accent-gold-hover-light: #e0b20e;
+    --accent-navy-light: #081422;
+    --focus-ring-light: #0b57d0;
+    --winner-bg-light: #ecfdf5;
+    --winner-border-light: #059669;
+    --winner-text-light: #065f46;
+    --winner-badge-bg-light: #047857;
+    --winner-badge-text-light: #ffffff;
+    --error-bg-light: #fef2f2;
+    --error-border-light: #dc2626;
+    --error-text-light: #b91c1c;
+    --warn-bg-light: #fffbeb;
+    --warn-border-light: #d97706;
+    --warn-text-light: #92400e;
+    --success-text-light: #15803d;
+    --scrollbar-track-light: #e2e8f0;
+    --scrollbar-thumb-light: #64748b;
+
+    /* Raw dark palette */
+    --bg-canvas-dark: #090e17;
+    --bg-surface-dark: #111927;
+    --bg-subtle-dark: #1a2436;
+    --bg-header-dark: #060b13;
+    --text-primary-dark: #f1f5f9;
+    --text-secondary-dark: #cbd5e1;
+    --text-muted-dark: #94a3b8;
+    --border-dark: #273449;
+    --border-strong-dark: #475569;
+    --accent-gold-dark: #f5c518;
+    --accent-gold-hover-dark: #fde047;
+    --accent-navy-dark: #081422;
+    --focus-ring-dark: #60a5fa;
+    --winner-bg-dark: #062b22;
+    --winner-border-dark: #34d399;
+    --winner-text-dark: #a7f3d0;
+    --winner-badge-bg-dark: #10b981;
+    --winner-badge-text-dark: #032219;
+    --error-bg-dark: #2c1014;
+    --error-border-dark: #f87171;
+    --error-text-dark: #fecaca;
+    --warn-bg-dark: #2a1d06;
+    --warn-border-dark: #fbbf24;
+    --warn-text-dark: #fde68a;
+    --success-text-dark: #4ade80;
+    --scrollbar-track-dark: #111927;
+    --scrollbar-thumb-dark: #475569;
+
+    /* Fallback defaults (light) */
+    --bg-canvas: var(--bg-canvas-light);
+    --bg-surface: var(--bg-surface-light);
+    --bg-subtle: var(--bg-subtle-light);
+    --bg-header: var(--bg-header-light);
+    --text-primary: var(--text-primary-light);
+    --text-secondary: var(--text-secondary-light);
+    --text-muted: var(--text-muted-light);
+    --border: var(--border-light);
+    --border-strong: var(--border-strong-light);
+    --accent-gold: var(--accent-gold-light);
+    --accent-gold-hover: var(--accent-gold-hover-light);
+    --accent-navy: var(--accent-navy-light);
+    --focus-ring: var(--focus-ring-light);
+    --winner-bg: var(--winner-bg-light);
+    --winner-border: var(--winner-border-light);
+    --winner-text: var(--winner-text-light);
+    --winner-badge-bg: var(--winner-badge-bg-light);
+    --winner-badge-text: var(--winner-badge-text-light);
+    --error-bg: var(--error-bg-light);
+    --error-border: var(--error-border-light);
+    --error-text: var(--error-text-light);
+    --warn-bg: var(--warn-bg-light);
+    --warn-border: var(--warn-border-light);
+    --warn-text: var(--warn-text-light);
+    --success-text: var(--success-text-light);
+    --scrollbar-track: var(--scrollbar-track-light);
+    --scrollbar-thumb: var(--scrollbar-thumb-light);
+
+    @media (prefers-color-scheme: dark) {
+      --bg-canvas: var(--bg-canvas-dark);
+      --bg-surface: var(--bg-surface-dark);
+      --bg-subtle: var(--bg-subtle-dark);
+      --bg-header: var(--bg-header-dark);
+      --text-primary: var(--text-primary-dark);
+      --text-secondary: var(--text-secondary-dark);
+      --text-muted: var(--text-muted-dark);
+      --border: var(--border-dark);
+      --border-strong: var(--border-strong-dark);
+      --accent-gold: var(--accent-gold-dark);
+      --accent-gold-hover: var(--accent-gold-hover-dark);
+      --accent-navy: var(--accent-navy-dark);
+      --focus-ring: var(--focus-ring-dark);
+      --winner-bg: var(--winner-bg-dark);
+      --winner-border: var(--winner-border-dark);
+      --winner-text: var(--winner-text-dark);
+      --winner-badge-bg: var(--winner-badge-bg-dark);
+      --winner-badge-text: var(--winner-badge-text-dark);
+      --error-bg: var(--error-bg-dark);
+      --error-border: var(--error-border-dark);
+      --error-text: var(--error-text-dark);
+      --warn-bg: var(--warn-bg-dark);
+      --warn-border: var(--warn-border-dark);
+      --warn-text: var(--warn-text-dark);
+      --success-text: var(--success-text-dark);
+      --scrollbar-track: var(--scrollbar-track-dark);
+      --scrollbar-thumb: var(--scrollbar-thumb-dark);
+    }
+
+    @supports (color: light-dark(white, black)) {
+      --bg-canvas: light-dark(var(--bg-canvas-light), var(--bg-canvas-dark));
+      --bg-surface: light-dark(var(--bg-surface-light), var(--bg-surface-dark));
+      --bg-subtle: light-dark(var(--bg-subtle-light), var(--bg-subtle-dark));
+      --bg-header: light-dark(var(--bg-header-light), var(--bg-header-dark));
+      --text-primary: light-dark(var(--text-primary-light), var(--text-primary-dark));
+      --text-secondary: light-dark(var(--text-secondary-light), var(--text-secondary-dark));
+      --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+      --border: light-dark(var(--border-light), var(--border-dark));
+      --border-strong: light-dark(var(--border-strong-light), var(--border-strong-dark));
+      --accent-gold: light-dark(var(--accent-gold-light), var(--accent-gold-dark));
+      --accent-gold-hover: light-dark(var(--accent-gold-hover-light), var(--accent-gold-hover-dark));
+      --accent-navy: light-dark(var(--accent-navy-light), var(--accent-navy-dark));
+      --focus-ring: light-dark(var(--focus-ring-light), var(--focus-ring-dark));
+      --winner-bg: light-dark(var(--winner-bg-light), var(--winner-bg-dark));
+      --winner-border: light-dark(var(--winner-border-light), var(--winner-border-dark));
+      --winner-text: light-dark(var(--winner-text-light), var(--winner-text-dark));
+      --winner-badge-bg: light-dark(var(--winner-badge-bg-light), var(--winner-badge-bg-dark));
+      --winner-badge-text: light-dark(var(--winner-badge-text-light), var(--winner-badge-text-dark));
+      --error-bg: light-dark(var(--error-bg-light), var(--error-bg-dark));
+      --error-border: light-dark(var(--error-border-light), var(--error-border-dark));
+      --error-text: light-dark(var(--error-text-light), var(--error-text-dark));
+      --warn-bg: light-dark(var(--warn-bg-light), var(--warn-bg-dark));
+      --warn-border: light-dark(var(--warn-border-light), var(--warn-border-dark));
+      --warn-text: light-dark(var(--warn-text-light), var(--warn-text-dark));
+      --success-text: light-dark(var(--success-text-light), var(--success-text-dark));
+      --scrollbar-track: light-dark(var(--scrollbar-track-light), var(--scrollbar-track-dark));
+      --scrollbar-thumb: light-dark(var(--scrollbar-thumb-light), var(--scrollbar-thumb-dark));
+    }
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 2px rgb(8 20 34 / 0.08);
+    --shadow-md: 0 6px 18px rgb(8 20 34 / 0.14);
+
+    color-scheme: light dark;
+    accent-color: #d97706;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+  }
+
+  :where(a:any-link, button, input, select, textarea, summary):focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  button {
+    cursor: pointer;
+    min-block-size: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  a:any-link {
+    color: var(--focus-ring);
+    text-underline-offset: 3px;
+  }
+
+  progress {
+    accent-color: var(--accent-gold);
+    inline-size: 100%;
+    block-size: 6px;
+    border-radius: 999px;
+  }
+
+  /* Accessible animated disclosure (<details> / <summary>) */
+  details > summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5ch;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details > summary::before {
+    content: "";
+    inline-size: 0.9em;
+    block-size: 0.9em;
+    flex-shrink: 0;
+    background-color: currentColor;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4.2 5.7a.75.75 0 0 1 1.06 0L8 8.44l2.74-2.74a.75.75 0 1 1 1.06 1.06l-3.27 3.27a.75.75 0 0 1-1.06 0L4.2 6.76a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    rotate: -90deg;
+  }
+
+  details[open] > summary::before {
+    rotate: 0deg;
+  }
+
+  details::details-content {
+    interpolate-size: allow-keywords;
+    overflow: clip;
+    contain: layout;
+  }
+
+  details:not([open])::details-content {
+    block-size: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    details > summary::before {
+      transition: rotate 0.2s ease;
+    }
+
+    details::details-content {
+      transition: block-size, content-visibility, display;
+      transition-duration: 0.24s;
+      transition-timing-function: ease-in-out;
+      transition-behavior: allow-discrete;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    background-color: var(--accent-gold);
+    color: #081422;
+    font-weight: 700;
+    padding: 0.625rem 1rem;
+    border-color: rgb(8 20 34 / 0.14);
+    corner-shape: squircle;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--accent-gold-hover);
+  }
+
+  .btn-secondary {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    padding: 0.5rem 0.875rem;
+    font-weight: 600;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--bg-subtle);
+  }
+
+  .btn-danger {
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    border-color: var(--error-border);
+    padding: 0.5rem 0.875rem;
+    font-weight: 600;
+  }
+
+  /* Post-interaction form validation (:user-invalid + ARIA sync fallback) */
+  .field-error-msg {
+    display: none;
+    color: var(--error-text);
+    font-size: 0.8125rem;
+    margin-block-start: 0.25rem;
+    font-weight: 500;
+  }
+
+  :is(input, select, textarea):is(:user-invalid, .user-invalid-fallback) {
+    border-color: var(--error-border);
+    background-color: var(--error-bg);
+  }
+
+  :is(input, select, textarea):is(:user-invalid, .user-invalid-fallback) ~ .field-error-msg {
+    display: block;
+  }
+
+  /* Toast region using popover="manual" */
+  .toast-region {
+    position: fixed;
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .toast[popover="manual"] {
+    position: relative;
+    inset: auto;
+    margin: 0;
+    pointer-events: auto;
+    max-inline-size: min(380px, calc(100vw - 2rem));
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .toast[popover="manual"]:where(:popover-open, .\:popover-open) {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .toast--success {
+    border-color: var(--winner-border);
+    background-color: var(--winner-bg);
+    color: var(--winner-text);
+  }
+
+  .toast--error {
+    border-color: var(--error-border);
+    background-color: var(--error-bg);
+    color: var(--error-text);
+  }
+
+  .toast__close {
+    min-inline-size: 28px;
+    min-block-size: 28px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font-size: 1.125rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .toast__close:hover {
+    background-color: rgb(128 128 128 / 0.16);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .toast[popover="manual"] {
+      transition: opacity 0.2s ease, transform 0.2s ease, display 0.2s ease, overlay 0.2s ease;
+      transition-behavior: allow-discrete;
+    }
+
+    @starting-style {
+      .toast[popover="manual"]:where(:popover-open, .\:popover-open) {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .visually-hidden:where(:not(:focus-within, :active)) {
+    position: absolute !important;
+    clip-path: inset(50%) !important;
+    overflow: hidden !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: nowrap !important;
+  }
+}
