@@ -28,8 +28,18 @@
   "permissions": [
     "tabs",
     "scripting",
-    "storage"
+    "storage",
+    "declarativeNetRequestWithHostAccess"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "couriersplease_headers",
+        "enabled": true,
+        "path": "rules/couriersplease-headers.json"
+      }
+    ]
+  },
   "host_permissions": [
     "https://aimexaustralia.logicsync.app/*",
     "https://digitalapi.auspost.com.au/*",

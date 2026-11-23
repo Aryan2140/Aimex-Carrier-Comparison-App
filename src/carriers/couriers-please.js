@@ -238,7 +238,18 @@ export async function fetchCouriersPleaseRates(order, settings, fetchImpl = fetc
     });
   }
 
-  const rateList = Array.isArray(payload?.data) ? payload.data : [];
+  if (!payload || !Array.isArray(payload.data)) {
+    throw new CarrierError({
+      code: 'EMPTY_RESPONSE',
+      carrierId,
+      title: 'CouriersPlease returned no quote data',
+      message: 'CouriersPlease returned an empty or unreadable response for this quote request.',
+      suggestion: 'Reload the extension in chrome://extensions and click Compare Rates again.',
+      technicalDetail: payload?.message || `HTTP ${response.status} with empty body`
+    });
+  }
+
+  const rateList = payload.data;
   return rateList.map((entry) => {
     const freightExGst = Number.parseFloat(entry.CalculatedFreightCharge || 0);
     const fuelExGst = Number.parseFloat(entry.CalculatedFuelCharge || 0);

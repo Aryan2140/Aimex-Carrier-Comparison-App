@@ -253,3 +253,13 @@ test('compareRates marks cheapest globally, slices per courier, handles ties, an
   assert.equal(cpGroup.error.code, 'AUTH_FAILED');
   assert.match(cpGroup.error.message, /Account Number/i);
 });
+
+test('CouriersPlease surfaces clear error when quote returns HTTP 200 with empty body', async () => {
+  const settings = buildTestSettings({ carriers: { couriersPlease: { validateLocation: false } } });
+  const mockFetch = async () => new Response('', { status: 200 });
+
+  await assert.rejects(
+    () => fetchCouriersPleaseRates(SAMPLE_ORDER, settings, mockFetch),
+    (err) => err?.code === 'EMPTY_RESPONSE' && /empty or unreadable response/i.test(err.message)
+  );
+});
