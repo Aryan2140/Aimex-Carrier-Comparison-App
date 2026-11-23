@@ -42,7 +42,17 @@ function matchesPresetName(haystack, presetName) {
     if (!multPart) return true;
 
     const num = multPart.slice(0, -1);
-    return hasMultiplierToken(haystack, num);
+    if (hasMultiplierToken(haystack, num)) return true;
+
+    // Match natural phrasing e.g. "G12 With 1 AA Stage", "G12 with 1 filter", "A20 with 3 AA filters", "with 3 8 stage filters"
+    const phrasePattern = new RegExp(
+      '(?:^|[^A-Z0-9])(?:' +
+        num + '\\s*(?:(?:AA|8\\s*STAGE|STAGE)\\s*)?(?:FILTER|CARTRIDGE|PACK|STAGE)S?|' +
+        '(?:WITH|INCLUDES?)\\s+' + num + '\\b' +
+      ')',
+      'i'
+    );
+    return phrasePattern.test(haystack);
   }
 
   // Handle standalone pack multipliers like "6X" matching "6X", "6 X", "X 6", "X6"

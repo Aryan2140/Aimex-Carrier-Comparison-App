@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Carrier Comparison Companion",
-  "version": "1.2.0",
-  "description": "Compare AusPost, eParcel, and CouriersPlease shipping rates on Aimex LogicSync order pages.",
+  "version": "1.3.0",
+  "description": "Compare MyPost, eParcel, and CouriersPlease shipping rates on Aimex LogicSync order pages.",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",

@@ -357,7 +357,7 @@ function buildErrorBox(container, err) {
 
 function updateCreateOrderButton() {
   const shortNames = {
-    [CARRIER_IDS.AUSPOST_PAC]: 'AusPost',
+    [CARRIER_IDS.AUSPOST_PAC]: 'MyPost',
     [CARRIER_IDS.AUSPOST_EPARCEL]: 'eParcel',
     [CARRIER_IDS.COURIERS_PLEASE]: 'CP'
   };

@@ -190,7 +190,7 @@ export async function fetchAusPostPacRates(order, settings, fetchImpl = fetch) {
 
     rates.push({
       carrierId,
-      carrierName: 'AusPost',
+      carrierName: 'MyPost',
       serviceCode: code,
       serviceName: formatPacServiceName(svc),
       priceIncGst,

@@ -21,7 +21,15 @@ test('matchProductPreset matches all 12 favourite parcel items and real LogicSyn
     [{ label: 'Quad Filter 4X' }, '4X', 3, [32, 33, 11]],
     [{ label: 'Five Pack 5X' }, '5X', 3.75, [41, 22, 11]],
     [{ label: 'A20/G12 1X Cartridge' }, 'A20/G12 1X', 4, [30, 30, 33]],
+    [{ label: 'G12 With 1 AA Stage', sku: 'AIMGAAFILTER' }, 'A20/G12 1X', 4, [30, 30, 33]],
+    [{ label: 'G12 with 1 filter' }, 'A20/G12 1X', 4, [30, 30, 33]],
+    [{ label: 'G12 with 1 AA filter' }, 'A20/G12 1X', 4, [30, 30, 33]],
+    [{ label: 'G12 with 1 8 stage filter' }, 'A20/G12 1X', 4, [30, 30, 33]],
+    [{ label: 'A20 with 1 filter' }, 'A20/G12 1X', 4, [30, 30, 33]],
     [{ label: 'G12 Replacement Pack 3X' }, 'A20/G12 3X', 5, [33, 33, 40]],
+    [{ label: 'G12 with 3 filters' }, 'A20/G12 3X', 5, [33, 33, 40]],
+    [{ label: 'A20 with 3 AA filters' }, 'A20/G12 3X', 5, [33, 33, 40]],
+    [{ label: 'G12 with 3 8 stage filters' }, 'A20/G12 3X', 5, [33, 33, 40]],
     [{ label: 'E20 System' }, 'E20', 3, [33, 33, 30]],
     [{ label: 'Model P12C2D2 Filter' }, 'P12C2D2', 6, [26, 26, 37]],
     [{ label: 'Model P17C2D2 Filter' }, 'P17C2D2', 6, [27, 27, 40]],
@@ -75,11 +83,11 @@ test('applyPresetsToItems overrides page weight/size on match and combines weigh
 test('formatShortServiceLabel shortens courier service names cleanly', () => {
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_PAC, 'AUS_PARCEL_REGULAR_PACKAGE_SMALL', 'Parcel Post — Small'),
-    { shortInColumn: 'Small', shortWithCarrier: 'AusPost: Small' }
+    { shortInColumn: 'Small', shortWithCarrier: 'MyPost: Small' }
   );
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_PAC, 'AUS_PARCEL_EXPRESS', 'Express Post (Own Packaging)'),
-    { shortInColumn: 'Express', shortWithCarrier: 'AusPost: Express' }
+    { shortInColumn: 'Express', shortWithCarrier: 'MyPost: Express' }
   );
   assert.deepEqual(
     formatShortServiceLabel(CARRIER_IDS.AUSPOST_EPARCEL, '3D55', 'Parcel Post + Signature'),
