@@ -138,7 +138,124 @@ body {
   padding: 0.55rem 0.65rem;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+}
+
+.package-mode-slider {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.mode-slide-btn {
+  position: relative;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.18s ease;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.mode-slide-btn.is-active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.slide-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  background-color: var(--bg-surface);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.package-mode-slider[data-active="satchel"] .slide-indicator {
+  transform: translateX(100%);
+}
+
+.mode-panel {
+  display: flex;
+  flex-direction: column;
   gap: 0.45rem;
+}
+
+.mode-panel[hidden] {
+  display: none;
+}
+
+.satchel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.satchel-select-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.satchel-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.satchel-select {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-canvas);
+  font-size: 0.78rem;
+  max-inline-size: 220px;
+}
+
+.satchel-fields-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.satchel-weight-field {
+  inline-size: 110px;
+  flex-shrink: 0;
+}
+
+.satchel-specs-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-inline-size: 0;
+}
+
+.satchel-spec-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.satchel-spec-dims {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .sizing-head {

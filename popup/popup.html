@@ -65,64 +65,100 @@
     <div id="update-banner" class="notice-banner" hidden></div>
 
     <section class="sizing-box" aria-label="Parcel dimensions and sizing">
-      <div class="sizing-head">
-        <div class="sizing-title-group">
-          <span class="sizing-title">Parcel Size</span>
-          <span id="matched-preset-tag" class="preset-tag" hidden></span>
+      <div class="package-mode-slider" role="radiogroup" aria-label="Packaging type">
+        <button type="button" id="mode-parcel-btn" class="mode-slide-btn is-active" role="radio" aria-checked="true">
+          Parcel Dimensions
+        </button>
+        <button type="button" id="mode-satchel-btn" class="mode-slide-btn" role="radio" aria-checked="false">
+          Satchel Sizes
+        </button>
+        <span class="slide-indicator" aria-hidden="true"></span>
+      </div>
+
+      <div id="parcel-mode-panel" class="mode-panel">
+        <div class="sizing-head">
+          <div class="sizing-title-group">
+            <span class="sizing-title">Parcel</span>
+            <span id="matched-preset-tag" class="preset-tag" hidden></span>
+          </div>
+
+          <div class="sizing-controls">
+            <label for="preset-select" class="visually-hidden">Favourite parcel preset</label>
+            <select id="preset-select" class="preset-select">
+              <option value="auto">Auto match</option>
+            </select>
+
+            <label class="combine-toggle" for="combine-toggle">
+              <input id="combine-toggle" type="checkbox" role="switch" class="toggle-switch">
+              <span>Combine</span>
+            </label>
+          </div>
         </div>
 
-        <div class="sizing-controls">
-          <label for="preset-select" class="visually-hidden">Favourite parcel preset</label>
-          <select id="preset-select" class="preset-select">
-            <option value="auto">Auto match</option>
-          </select>
+        <div id="single-size-row" class="size-grid-4">
+          <div class="mini-field">
+            <label for="dim-length">L (cm)</label>
+            <input id="dim-length" type="text" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="mini-field">
+            <label for="dim-width">W (cm)</label>
+            <input id="dim-width" type="text" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="mini-field">
+            <label for="dim-height">H (cm)</label>
+            <input id="dim-height" type="text" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="mini-field">
+            <label for="dim-weight">Weight (kg)</label>
+            <input id="dim-weight" type="text" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
 
-          <label class="combine-toggle" for="combine-toggle">
-            <input id="combine-toggle" type="checkbox" role="switch" class="toggle-switch">
-            <span>Combine</span>
-          </label>
+        <div id="multi-items-list" class="multi-items-list" hidden></div>
+
+        <div id="combine-section" class="combine-section" hidden>
+          <p class="combine-label">Combined Box Size &amp; Total Weight</p>
+          <div class="size-grid-4">
+            <div class="mini-field">
+              <label for="combine-length">L (cm)</label>
+              <input id="combine-length" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="mini-field">
+              <label for="combine-width">W (cm)</label>
+              <input id="combine-width" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="mini-field">
+              <label for="combine-height">H (cm)</label>
+              <input id="combine-height" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="mini-field">
+              <label for="combine-weight">Total (kg)</label>
+              <input id="combine-weight" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+          </div>
         </div>
       </div>
 
-      <div id="single-size-row" class="size-grid-4">
-        <div class="mini-field">
-          <label for="dim-length">L (cm)</label>
-          <input id="dim-length" type="text" inputmode="decimal" autocomplete="off">
-        </div>
-        <div class="mini-field">
-          <label for="dim-width">W (cm)</label>
-          <input id="dim-width" type="text" inputmode="decimal" autocomplete="off">
-        </div>
-        <div class="mini-field">
-          <label for="dim-height">H (cm)</label>
-          <input id="dim-height" type="text" inputmode="decimal" autocomplete="off">
-        </div>
-        <div class="mini-field">
-          <label for="dim-weight">Weight (kg)</label>
-          <input id="dim-weight" type="text" inputmode="decimal" autocomplete="off">
-        </div>
-      </div>
-
-      <div id="multi-items-list" class="multi-items-list" hidden></div>
-
-      <div id="combine-section" class="combine-section" hidden>
-        <p class="combine-label">Combined Box Size &amp; Total Weight</p>
-        <div class="size-grid-4">
-          <div class="mini-field">
-            <label for="combine-length">L (cm)</label>
-            <input id="combine-length" type="text" inputmode="decimal" autocomplete="off">
+      <div id="satchel-mode-panel" class="mode-panel" hidden>
+        <div class="satchel-body">
+          <div class="satchel-select-wrap">
+            <label for="satchel-size-select" class="satchel-label">Satchel Size</label>
+            <select id="satchel-size-select" class="satchel-select">
+              <option value="satchel-s">Small (up to 500g)</option>
+              <option value="satchel-m">Medium (up to 1kg)</option>
+              <option value="satchel-l">Large (up to 3kg)</option>
+              <option value="satchel-xl">Extra Large (up to 5kg)</option>
+            </select>
           </div>
-          <div class="mini-field">
-            <label for="combine-width">W (cm)</label>
-            <input id="combine-width" type="text" inputmode="decimal" autocomplete="off">
-          </div>
-          <div class="mini-field">
-            <label for="combine-height">H (cm)</label>
-            <input id="combine-height" type="text" inputmode="decimal" autocomplete="off">
-          </div>
-          <div class="mini-field">
-            <label for="combine-weight">Total (kg)</label>
-            <input id="combine-weight" type="text" inputmode="decimal" autocomplete="off">
+          <div class="satchel-fields-row">
+            <div class="mini-field satchel-weight-field">
+              <label for="satchel-weight">Weight (kg)</label>
+              <input id="satchel-weight" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="satchel-specs-display">
+              <span class="satchel-spec-title">Satchel dimensions</span>
+              <span id="satchel-spec-note" class="satchel-spec-dims">35.5 × 22 × 2 cm (Max 0.5 kg)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -203,7 +239,7 @@
 
   <footer class="popup-footer">
     <button type="button" id="clear-btn" class="link-btn" hidden>Clear</button>
-    <span id="version-badge" class="version-badge tabular-nums">v1.3.0</span>
+    <span id="version-badge" class="version-badge tabular-nums">v1.4.0</span>
   </footer>
 
   <script type="module" src="popup.js"></script>

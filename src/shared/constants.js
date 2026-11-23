@@ -62,6 +62,13 @@ export const DEFAULT_PARCEL_PRESETS = [
   { id: 'p24c2d2', name: 'P24C2D2', weightKg: 6.5, lengthCm: 30, widthCm: 30, heightCm: 45 }
 ];
 
+export const SATCHEL_PRESETS = [
+  { id: 'satchel-s', name: 'Small (500g)', maxWeightKg: 0.5, lengthCm: 35.5, widthCm: 22, heightCm: 2 },
+  { id: 'satchel-m', name: 'Medium (1kg)', maxWeightKg: 1.0, lengthCm: 40.5, widthCm: 31, heightCm: 3 },
+  { id: 'satchel-l', name: 'Large (3kg)', maxWeightKg: 3.0, lengthCm: 40.5, widthCm: 31, heightCm: 5 },
+  { id: 'satchel-xl', name: 'Extra Large (5kg)', maxWeightKg: 5.0, lengthCm: 51, widthCm: 43.5, heightCm: 6 }
+];
+
 export const DEFAULT_SETTINGS = {
   maxPricesPerCourier: 3,
   includeGst: true,

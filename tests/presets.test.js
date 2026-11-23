@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CARRIER_IDS, DEFAULT_PARCEL_PRESETS, DEFAULT_SETTINGS } from '../src/shared/constants.js';
+import { CARRIER_IDS, DEFAULT_PARCEL_PRESETS, DEFAULT_SETTINGS, SATCHEL_PRESETS } from '../src/shared/constants.js';
 import { applyPresetsToItems, formatShortServiceLabel, matchProductPreset } from '../src/shared/presets.js';
 import { buildOrderParcels } from '../src/carriers/parcel-utils.js';
 
@@ -78,6 +78,16 @@ test('applyPresetsToItems overrides page weight/size on match and combines weigh
     DEFAULT_SETTINGS
   );
   assert.equal(combinedCustomWeight.totalWeightKg, 8.2);
+});
+
+test('SATCHEL_PRESETS includes standard Australian small, medium, large, and extra-large satchels', () => {
+  assert.equal(SATCHEL_PRESETS.length, 4);
+  const [s, m, l, xl] = SATCHEL_PRESETS;
+  assert.equal(s.maxWeightKg, 0.5);
+  assert.equal(m.maxWeightKg, 1.0);
+  assert.equal(l.maxWeightKg, 3.0);
+  assert.equal(xl.maxWeightKg, 5.0);
+  assert.deepEqual([s.lengthCm, s.widthCm, s.heightCm], [35.5, 22, 2]);
 });
 
 test('formatShortServiceLabel shortens courier service names cleanly', () => {

@@ -1,4 +1,4 @@
-import { ALLOWED_ORIGIN, CARRIER_IDS } from '../src/shared/constants.js';
+import { ALLOWED_ORIGIN, CARRIER_IDS, SATCHEL_PRESETS } from '../src/shared/constants.js';
 import { clearLastResult, loadLastResult, loadSettings } from '../src/shared/storage.js';
 
 const helpBtn = document.getElementById('help-btn');
@@ -6,6 +6,15 @@ const helpPopover = document.getElementById('help-popover');
 const checkUpdatesBtn = document.getElementById('check-updates-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
 const updateBannerEl = document.getElementById('update-banner');
+
+const packageModeSlider = document.querySelector('.package-mode-slider');
+const modeParcelBtn = document.getElementById('mode-parcel-btn');
+const modeSatchelBtn = document.getElementById('mode-satchel-btn');
+const parcelModePanel = document.getElementById('parcel-mode-panel');
+const satchelModePanel = document.getElementById('satchel-mode-panel');
+const satchelSizeSelect = document.getElementById('satchel-size-select');
+const satchelWeightInput = document.getElementById('satchel-weight');
+const satchelSpecNote = document.getElementById('satchel-spec-note');
 
 const presetSelect = document.getElementById('preset-select');
 const matchedPresetTag = document.getElementById('matched-preset-tag');
@@ -62,6 +71,24 @@ let singleSizeEdited = false;
 let combinedWeightEdited = false;
 let selectedCarrierId = CARRIER_IDS.AUSPOST_PAC;
 let carrierOrderUrls = {};
+let currentPackagingType = 'parcel'; // 'parcel' | 'satchel'
+
+function updatePackagingModeUI() {
+  const isSatchel = currentPackagingType === 'satchel';
+  packageModeSlider.dataset.active = isSatchel ? 'satchel' : 'parcel';
+  modeParcelBtn.classList.toggle('is-active', !isSatchel);
+  modeParcelBtn.setAttribute('aria-checked', !isSatchel ? 'true' : 'false');
+  modeSatchelBtn.classList.toggle('is-active', isSatchel);
+  modeSatchelBtn.setAttribute('aria-checked', isSatchel ? 'true' : 'false');
+  parcelModePanel.hidden = isSatchel;
+  satchelModePanel.hidden = !isSatchel;
+}
+
+function updateSatchelSpecDisplay() {
+  const selectedId = satchelSizeSelect.value;
+  const satchel = SATCHEL_PRESETS.find((s) => s.id === selectedId) || SATCHEL_PRESETS[0];
+  satchelSpecNote.textContent = `${satchel.lengthCm} × ${satchel.widthCm} × ${satchel.heightCm} cm (Max ${satchel.maxWeightKg} kg)`;
+}
 
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
@@ -250,6 +277,22 @@ function positiveNum(input) {
 }
 
 function collectUserOverrides() {
+  if (currentPackagingType === 'satchel') {
+    const selectedId = satchelSizeSelect.value;
+    const satchel = SATCHEL_PRESETS.find((s) => s.id === selectedId) || SATCHEL_PRESETS[0];
+    const weightKg = positiveNum(satchelWeightInput) || satchel.maxWeightKg;
+    return {
+      satchel: {
+        id: satchel.id,
+        name: satchel.name,
+        lengthCm: satchel.lengthCm,
+        widthCm: satchel.widthCm,
+        heightCm: satchel.heightCm,
+        weightKg
+      }
+    };
+  }
+
   if (combineToggle.checked) {
     const weightKg = positiveNum(combineWeightInput);
     const lengthCm = positiveNum(combineLengthInput);
@@ -639,6 +682,8 @@ async function initPopup() {
   applyTheme(currentSettings.theme);
   populatePresetSelect(currentSettings.parcelPresets);
   setDefaultSizingInputs();
+  updatePackagingModeUI();
+  updateSatchelSpecDisplay();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   activeTab = tab || null;
@@ -698,6 +743,22 @@ for (const input of [dimLengthInput, dimWidthInput, dimHeightInput, dimWeightInp
     singleSizeEdited = true;
   });
 }
+
+modeParcelBtn.addEventListener('click', () => {
+  currentPackagingType = 'parcel';
+  updatePackagingModeUI();
+});
+
+modeSatchelBtn.addEventListener('click', () => {
+  currentPackagingType = 'satchel';
+  updatePackagingModeUI();
+  updateSatchelSpecDisplay();
+  if (!satchelWeightInput.value.trim() && dimWeightInput.value.trim()) {
+    satchelWeightInput.value = dimWeightInput.value.trim();
+  }
+});
+
+satchelSizeSelect.addEventListener('change', updateSatchelSpecDisplay);
 
 combineWeightInput.addEventListener('input', () => {
   combinedWeightEdited = true;

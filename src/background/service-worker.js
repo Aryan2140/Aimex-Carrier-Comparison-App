@@ -98,6 +98,27 @@ function applyUserOverrides(items, userOverrides, settings) {
     return item;
   });
 
+  if (userOverrides.satchel) {
+    const s = userOverrides.satchel;
+    return {
+      items: nextItems.map((item, idx) => idx === 0 ? {
+        ...item,
+        weightKg: Number(s.weightKg) > 0 ? Number(s.weightKg) : item.weightKg,
+        lengthCm: Number(s.lengthCm),
+        widthCm: Number(s.widthCm),
+        heightCm: Number(s.heightCm),
+        matchedPresetName: s.name
+      } : item),
+      packagingModeOverride: 'per_unit',
+      combinedOverride: null,
+      dimensionOverride: {
+        lengthCm: Number(s.lengthCm),
+        widthCm: Number(s.widthCm),
+        heightCm: Number(s.heightCm)
+      }
+    };
+  }
+
   if (userOverrides.combine) {
     const c = userOverrides.combined || {};
     const defs = settings.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
