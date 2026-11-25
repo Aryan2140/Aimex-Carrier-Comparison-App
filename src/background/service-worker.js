@@ -3,9 +3,9 @@
  * preset matching, parallel carrier quoting, credential testing, and GitHub update checks.
  */
 
-import { ALLOWED_ORIGIN, CARRIER_IDS } from '../shared/constants.js';
+import { ALLOWED_ORIGIN, CARRIER_IDS, SATCHEL_PRESETS } from '../shared/constants.js';
 import { CarrierError, toHumanError } from '../shared/errors.js';
-import { applyPresetsToItems } from '../shared/presets.js';
+import { applyPresetsToItems, determineBestSatchel } from '../shared/presets.js';
 import { loadSettings, saveLastResult } from '../shared/storage.js';
 import { checkForUpdates } from '../shared/updates.js';
 import { compareRates } from '../carriers/compare.js';
@@ -99,22 +99,74 @@ function applyUserOverrides(items, userOverrides, settings) {
   });
 
   if (userOverrides.satchel) {
-    const s = userOverrides.satchel;
+    const req = userOverrides.satchel;
+    const satchelList = Array.isArray(settings?.satchelSizes) && settings.satchelSizes.length
+      ? settings.satchelSizes
+      : SATCHEL_PRESETS;
+
+    let chosenSatchel = null;
+    let autoReason = '';
+    let totalUnits = 0;
+    let summedWeightKg = 0;
+
+    for (const item of nextItems) {
+      const qty = Math.max(1, Number.parseInt(String(item.quantity || 1), 10) || 1);
+      summedWeightKg += Number(item.weightKg || 0) * qty;
+    }
+    summedWeightKg = Math.round(summedWeightKg * 1000) / 1000;
+
+    const finalWeightKg = req.weightEdited && Number(req.weightKg) > 0
+      ? Number(req.weightKg)
+      : summedWeightKg > 0
+        ? summedWeightKg
+        : Number(req.weightKg) || 0.75;
+
+    if (req.auto) {
+      const itemsWithEffectiveWeight = req.weightEdited && nextItems.length === 1
+        ? [{ ...nextItems[0], weightKg: finalWeightKg }]
+        : nextItems;
+      const fit = determineBestSatchel(itemsWithEffectiveWeight, settings);
+      if (!fit.fits || !fit.satchel) {
+        throw new CarrierError({
+          code: 'SATCHEL_UNSUITABLE',
+          title: 'Order does not fit a satchel',
+          message: fit.reason || 'Order items exceed satchel size or weight limits.',
+          suggestion: 'Switch the top slider to Parcel Dimensions to quote a box.'
+        });
+      }
+      chosenSatchel = fit.satchel;
+      autoReason = fit.reason;
+      totalUnits = fit.totalUnits;
+    } else {
+      chosenSatchel = satchelList.find((s) => s.id === req.id) || satchelList[0];
+      if (finalWeightKg > Number(chosenSatchel.maxWeightKg || 5)) {
+        throw new CarrierError({
+          code: 'OVERWEIGHT',
+          title: `Weight exceeds ${chosenSatchel.maxWeightKg || 5} kg satchel limit`,
+          message: `Combined weight (${finalWeightKg} kg) exceeds the ${chosenSatchel.name} satchel maximum of ${chosenSatchel.maxWeightKg || 5} kg.`,
+          suggestion: 'Reduce weight or switch to Parcel Dimensions mode to quote a box.'
+        });
+      }
+    }
+
     return {
-      items: nextItems.map((item, idx) => idx === 0 ? {
-        ...item,
-        weightKg: Number(s.weightKg) > 0 ? Number(s.weightKg) : item.weightKg,
-        lengthCm: Number(s.lengthCm),
-        widthCm: Number(s.widthCm),
-        heightCm: Number(s.heightCm),
-        matchedPresetName: s.name
-      } : item),
-      packagingModeOverride: 'per_unit',
-      combinedOverride: null,
-      dimensionOverride: {
-        lengthCm: Number(s.lengthCm),
-        widthCm: Number(s.widthCm),
-        heightCm: Number(s.heightCm)
+      items: nextItems,
+      packagingModeOverride: 'combined',
+      combinedOverride: {
+        weightKg: finalWeightKg,
+        lengthCm: Number(chosenSatchel.lengthCm),
+        widthCm: Number(chosenSatchel.widthCm),
+        heightCm: Number(chosenSatchel.heightCm)
+      },
+      dimensionOverride: null,
+      satchelMeta: {
+        id: chosenSatchel.id,
+        name: chosenSatchel.name,
+        tierKey: chosenSatchel.tierKey || '',
+        displayDims: chosenSatchel.displayDims || `${chosenSatchel.lengthCm}×${chosenSatchel.widthCm} cm`,
+        autoMatched: Boolean(req.auto),
+        reason: autoReason || chosenSatchel.name,
+        totalUnits
       }
     };
   }
@@ -131,7 +183,8 @@ function applyUserOverrides(items, userOverrides, settings) {
         widthCm: Number(c.widthCm) > 0 ? Number(c.widthCm) : defs.widthCm,
         heightCm: Number(c.heightCm) > 0 ? Number(c.heightCm) : defs.heightCm
       },
-      dimensionOverride: null
+      dimensionOverride: null,
+      satchelMeta: null
     };
   }
 
@@ -139,7 +192,8 @@ function applyUserOverrides(items, userOverrides, settings) {
     items: nextItems,
     packagingModeOverride: 'per_unit',
     combinedOverride: null,
-    dimensionOverride: null
+    dimensionOverride: null,
+    satchelMeta: null
   };
 }
 
@@ -196,7 +250,8 @@ async function handleCompareRates(message) {
     items: resolved.items,
     packagingModeOverride: resolved.packagingModeOverride,
     combinedOverride: resolved.combinedOverride,
-    dimensionOverride: resolved.dimensionOverride
+    dimensionOverride: resolved.dimensionOverride,
+    satchelMeta: resolved.satchelMeta || null
   };
 
   const result = await compareRates(order, settings);

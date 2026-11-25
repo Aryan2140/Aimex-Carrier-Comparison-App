@@ -124,6 +124,7 @@ export async function compareRates(order, settings, fetchImpl = fetch) {
       totalWeightKg,
       totalParcelCount,
       packagingMode: effectivePackagingMode,
+      satchel: order?.satchelMeta || null,
       items: order.items || [],
       dimensions: parcels[0]
         ? {

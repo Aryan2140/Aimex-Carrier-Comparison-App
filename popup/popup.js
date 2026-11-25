@@ -1,6 +1,8 @@
-import { ALLOWED_ORIGIN, CARRIER_IDS, SATCHEL_PRESETS } from '../src/shared/constants.js';
-import { clearLastResult, loadLastResult, loadSettings } from '../src/shared/storage.js';
+import { ALLOWED_ORIGIN, CARRIER_IDS, POPUP_SIZES, SATCHEL_PRESETS } from '../src/shared/constants.js';
+import { determineBestSatchel } from '../src/shared/presets.js';
+import { clearLastResult, loadLastResult, loadSettings, saveSettings } from '../src/shared/storage.js';
 
+const resizePopupBtn = document.getElementById('resize-popup-btn');
 const helpBtn = document.getElementById('help-btn');
 const helpPopover = document.getElementById('help-popover');
 const checkUpdatesBtn = document.getElementById('check-updates-btn');
@@ -13,7 +15,9 @@ const modeSatchelBtn = document.getElementById('mode-satchel-btn');
 const parcelModePanel = document.getElementById('parcel-mode-panel');
 const satchelModePanel = document.getElementById('satchel-mode-panel');
 const satchelSizeSelect = document.getElementById('satchel-size-select');
+const satchelAutoTag = document.getElementById('satchel-auto-tag');
 const satchelWeightInput = document.getElementById('satchel-weight');
+const satchelWeightBadge = document.getElementById('satchel-weight-badge');
 const satchelSpecNote = document.getElementById('satchel-spec-note');
 
 const presetSelect = document.getElementById('preset-select');
@@ -32,6 +36,7 @@ const combineLengthInput = document.getElementById('combine-length');
 const combineWidthInput = document.getElementById('combine-width');
 const combineHeightInput = document.getElementById('combine-height');
 const combineWeightInput = document.getElementById('combine-weight');
+const combineWeightBadge = document.getElementById('combine-weight-badge');
 
 const compareBtn = document.getElementById('compare-btn');
 const offsiteNoteEl = document.getElementById('offsite-note');
@@ -69,9 +74,20 @@ let isComparing = false;
 let currentItems = [];
 let singleSizeEdited = false;
 let combinedWeightEdited = false;
+let satchelWeightEdited = false;
+let selectedPresetWeightKg = null;
 let selectedCarrierId = CARRIER_IDS.AUSPOST_PAC;
 let carrierOrderUrls = {};
 let currentPackagingType = 'parcel'; // 'parcel' | 'satchel'
+
+function applyPopupSize(sizeKey) {
+  const key = Object.hasOwn(POPUP_SIZES, sizeKey) ? sizeKey : 'standard';
+  document.body.dataset.size = key;
+  const label = POPUP_SIZES[key]?.label || 'Standard';
+  if (resizePopupBtn) {
+    resizePopupBtn.title = `Popup width: ${label} (click to resize)`;
+  }
+}
 
 function updatePackagingModeUI() {
   const isSatchel = currentPackagingType === 'satchel';
@@ -86,8 +102,37 @@ function updatePackagingModeUI() {
 
 function updateSatchelSpecDisplay() {
   const selectedId = satchelSizeSelect.value;
-  const satchel = SATCHEL_PRESETS.find((s) => s.id === selectedId) || SATCHEL_PRESETS[0];
-  satchelSpecNote.textContent = `${satchel.lengthCm} × ${satchel.widthCm} × ${satchel.heightCm} cm (Max ${satchel.maxWeightKg} kg)`;
+  const satchelList = currentSettings?.satchelSizes?.length ? currentSettings.satchelSizes : SATCHEL_PRESETS;
+
+  if (selectedId === 'auto') {
+    if (currentItems.length > 0) {
+      const fit = determineBestSatchel(currentItems, currentSettings);
+      if (fit.fits && fit.satchel) {
+        satchelAutoTag.textContent = `${fit.satchel.name} (${fit.totalUnits}u)`;
+        satchelAutoTag.hidden = false;
+        satchelSpecNote.textContent = `${fit.satchel.displayDims || `${fit.satchel.lengthCm}×${fit.satchel.widthCm} cm`} · Max ${fit.satchel.maxWeightKg} kg`;
+      } else {
+        satchelAutoTag.textContent = 'Box needed';
+        satchelAutoTag.hidden = false;
+        satchelSpecNote.textContent = fit.reason || 'Items exceed satchel capacity';
+      }
+    } else {
+      satchelAutoTag.hidden = true;
+      satchelSpecNote.textContent = 'Auto-fits order items by size & weight';
+    }
+  } else {
+    satchelAutoTag.hidden = true;
+    const satchel = satchelList.find((s) => s.id === selectedId) || satchelList[0];
+    satchelSpecNote.textContent = `${satchel.displayDims || `${satchel.lengthCm}×${satchel.widthCm} cm`} · Max ${satchel.maxWeightKg} kg`;
+  }
+
+  const summed = sumCurrentItemWeights();
+  if (!satchelWeightEdited && summed && summed > 0) {
+    satchelWeightInput.value = String(summed);
+    const isCombinedMulti = currentItems.length > 1 || (currentItems[0]?.quantity || 1) > 1;
+    satchelWeightInput.classList.toggle('weight-adjusted', isCombinedMulti);
+    satchelWeightBadge.hidden = !isCombinedMulti;
+  }
 }
 
 function applyTheme(theme) {
@@ -209,6 +254,24 @@ function renderMultiItemRows(items) {
   });
 }
 
+function updateCombinedWeightHighlight(nextWeight) {
+  const numeric = Number(nextWeight);
+  const adjustedFromPreset = selectedPresetWeightKg !== null
+    && Number.isFinite(numeric)
+    && Math.abs(numeric - selectedPresetWeightKg) > 0.005;
+  const multiProduct = currentItems.length > 1 || (currentItems[0]?.quantity || 1) > 1;
+  const showHighlight = Boolean(numeric > 0 && (adjustedFromPreset || multiProduct));
+
+  combineWeightInput.classList.toggle('weight-adjusted', showHighlight);
+  combineWeightBadge.hidden = !showHighlight;
+  if (adjustedFromPreset) {
+    const diff = Math.round((numeric - selectedPresetWeightKg) * 100) / 100;
+    combineWeightBadge.textContent = diff > 0 ? `+${diff}kg` : `${diff}kg`;
+  } else if (multiProduct) {
+    combineWeightBadge.textContent = 'Combined';
+  }
+}
+
 function updateSizingLayout() {
   const isCombined = combineToggle.checked;
   const hasMultiple = currentItems.length > 1;
@@ -219,7 +282,11 @@ function updateSizingLayout() {
     multiItemsList.hidden = true;
     if (!combinedWeightEdited) {
       const summed = sumCurrentItemWeights();
-      if (summed && summed > 0) combineWeightInput.value = String(summed);
+      const targetWeight = summed && summed > 0 ? summed : (selectedPresetWeightKg || positiveNum(dimWeightInput));
+      if (targetWeight && targetWeight > 0) {
+        combineWeightInput.value = String(targetWeight);
+        updateCombinedWeightHighlight(targetWeight);
+      }
     }
     return;
   }
@@ -238,12 +305,25 @@ function syncSizingFromResult(summary) {
   currentItems = items;
   const defs = currentSettings?.defaultDimensions || { lengthCm: 20, widthCm: 15, heightCm: 10 };
 
+  if (summary?.satchel) {
+    currentPackagingType = 'satchel';
+    satchelSizeSelect.value = summary.satchel.autoMatched ? 'auto' : (summary.satchel.id || 'auto');
+    satchelWeightInput.value = String(summary.totalWeightKg || '');
+    const isCombinedMulti = items.length > 1 || (items[0]?.quantity || 1) > 1;
+    satchelWeightInput.classList.toggle('weight-adjusted', isCombinedMulti || satchelWeightEdited);
+    satchelWeightBadge.hidden = !(isCombinedMulti || satchelWeightEdited);
+    updatePackagingModeUI();
+    updateSatchelSpecDisplay();
+    return;
+  }
+
   if (summary?.packagingMode === 'combined') {
     combineToggle.checked = true;
     combineLengthInput.value = String(summary.dimensions?.lengthCm || defs.lengthCm);
     combineWidthInput.value = String(summary.dimensions?.widthCm || defs.widthCm);
     combineHeightInput.value = String(summary.dimensions?.heightCm || defs.heightCm);
     combineWeightInput.value = String(summary.totalWeightKg || '');
+    updateCombinedWeightHighlight(summary.totalWeightKg);
   } else if (items.length > 1) {
     combineToggle.checked = false;
     renderMultiItemRows(items);
@@ -261,6 +341,7 @@ function syncSizingFromResult(summary) {
       const matchingPreset = currentSettings?.parcelPresets?.find((p) => p.name === item.matchedPresetName);
       if (matchingPreset && presetSelect.value === 'auto') {
         presetSelect.value = matchingPreset.id;
+        selectedPresetWeightKg = matchingPreset.weightKg;
       }
     } else {
       matchedPresetTag.hidden = true;
@@ -279,16 +360,17 @@ function positiveNum(input) {
 function collectUserOverrides() {
   if (currentPackagingType === 'satchel') {
     const selectedId = satchelSizeSelect.value;
-    const satchel = SATCHEL_PRESETS.find((s) => s.id === selectedId) || SATCHEL_PRESETS[0];
-    const weightKg = positiveNum(satchelWeightInput) || satchel.maxWeightKg;
+    const rawWeight = satchelWeightInput.value.trim();
+    const weightKg = positiveNum(satchelWeightInput);
+    if (rawWeight && !weightKg) {
+      return { invalid: true };
+    }
     return {
       satchel: {
-        id: satchel.id,
-        name: satchel.name,
-        lengthCm: satchel.lengthCm,
-        widthCm: satchel.widthCm,
-        heightCm: satchel.heightCm,
-        weightKg
+        auto: selectedId === 'auto',
+        id: selectedId === 'auto' ? '' : selectedId,
+        weightKg,
+        weightEdited: satchelWeightEdited
       }
     };
   }
@@ -420,7 +502,9 @@ function renderCollectedSummary(summary) {
   collectedWeightEl.textContent = summary ? `${summary.totalWeightKg} kg${qtyNote}` : '—';
 
   const items = summary?.items || [];
-  if (summary?.packagingMode !== 'combined' && items.length > 1) {
+  if (summary?.satchel) {
+    collectedSizeEl.textContent = `${summary.satchel.name} Satchel (${summary.satchel.displayDims})`;
+  } else if (summary?.packagingMode !== 'combined' && items.length > 1) {
     collectedSizeEl.textContent = `${items.length} products`;
   } else if (summary?.dimensions) {
     const d = summary.dimensions;
@@ -680,6 +764,7 @@ async function initPopup() {
   versionBadgeEl.textContent = `v${chrome.runtime.getManifest().version}`;
   currentSettings = await loadSettings();
   applyTheme(currentSettings.theme);
+  applyPopupSize(currentSettings.popupSize);
   populatePresetSelect(currentSettings.parcelPresets);
   setDefaultSizingInputs();
   updatePackagingModeUI();
@@ -716,26 +801,40 @@ if (!Object.hasOwn(HTMLButtonElement.prototype, 'commandForElement')) {
   });
 }
 
+resizePopupBtn.addEventListener('click', async () => {
+  const order = ['standard', 'medium', 'wide'];
+  const current = document.body.dataset.size || 'standard';
+  const next = order[(order.indexOf(current) + 1) % order.length];
+  applyPopupSize(next);
+  currentSettings = await saveSettings({ popupSize: next });
+});
+
 presetSelect.addEventListener('change', () => {
   const val = presetSelect.value;
   if (val === 'auto') {
     matchedPresetTag.hidden = true;
+    selectedPresetWeightKg = null;
     singleSizeEdited = false;
     return;
   }
   const preset = currentSettings?.parcelPresets?.find((p) => p.id === val);
   if (!preset) return;
 
-  combineToggle.checked = false;
-  currentItems = [];
-  updateSizingLayout();
+  // Save dimensions into both single and combine inputs without erasing multi-product items
   dimLengthInput.value = String(preset.lengthCm);
   dimWidthInput.value = String(preset.widthCm);
   dimHeightInput.value = String(preset.heightCm);
   dimWeightInput.value = String(preset.weightKg);
+
+  combineLengthInput.value = String(preset.lengthCm);
+  combineWidthInput.value = String(preset.widthCm);
+  combineHeightInput.value = String(preset.heightCm);
+  selectedPresetWeightKg = Number(preset.weightKg);
+
   matchedPresetTag.textContent = `Preset: ${preset.name}`;
   matchedPresetTag.hidden = false;
   singleSizeEdited = true;
+  updateSizingLayout();
 });
 
 for (const input of [dimLengthInput, dimWidthInput, dimHeightInput, dimWeightInput]) {
@@ -753,18 +852,44 @@ modeSatchelBtn.addEventListener('click', () => {
   currentPackagingType = 'satchel';
   updatePackagingModeUI();
   updateSatchelSpecDisplay();
-  if (!satchelWeightInput.value.trim() && dimWeightInput.value.trim()) {
-    satchelWeightInput.value = dimWeightInput.value.trim();
-  }
 });
 
 satchelSizeSelect.addEventListener('change', updateSatchelSpecDisplay);
 
-combineWeightInput.addEventListener('input', () => {
-  combinedWeightEdited = true;
+satchelWeightInput.addEventListener('input', () => {
+  satchelWeightEdited = Boolean(satchelWeightInput.value.trim());
+  satchelWeightInput.classList.toggle('weight-adjusted', satchelWeightEdited);
+  if (satchelWeightEdited) {
+    satchelWeightBadge.textContent = 'Custom';
+    satchelWeightBadge.hidden = false;
+  } else {
+    satchelWeightBadge.hidden = true;
+  }
 });
 
-combineToggle.addEventListener('change', updateSizingLayout);
+combineWeightInput.addEventListener('input', () => {
+  combinedWeightEdited = true;
+  combineWeightInput.classList.add('weight-adjusted');
+  combineWeightBadge.textContent = 'Custom';
+  combineWeightBadge.hidden = false;
+});
+
+combineToggle.addEventListener('change', () => {
+  if (combineToggle.checked) {
+    const chosenPreset = currentSettings?.parcelPresets?.find((p) => p.id === presetSelect.value);
+    if (chosenPreset) {
+      combineLengthInput.value = String(chosenPreset.lengthCm);
+      combineWidthInput.value = String(chosenPreset.widthCm);
+      combineHeightInput.value = String(chosenPreset.heightCm);
+      selectedPresetWeightKg = Number(chosenPreset.weightKg);
+    } else if (!combineLengthInput.value.trim() && dimLengthInput.value.trim()) {
+      combineLengthInput.value = dimLengthInput.value.trim();
+      combineWidthInput.value = dimWidthInput.value.trim();
+      combineHeightInput.value = dimHeightInput.value.trim();
+    }
+  }
+  updateSizingLayout();
+});
 openSettingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
 checkUpdatesBtn.addEventListener('click', handleCheckUpdates);
 compareBtn.addEventListener('click', handleCompareClick);
@@ -779,9 +904,18 @@ createOrderBtn.addEventListener('click', async () => {
 clearBtn.addEventListener('click', async () => {
   await clearLastResult();
   currentItems = [];
+  selectedPresetWeightKg = null;
+  satchelWeightEdited = false;
   combineToggle.checked = false;
+  combineWeightInput.classList.remove('weight-adjusted');
+  combineWeightBadge.hidden = true;
+  satchelWeightInput.value = '';
+  satchelWeightInput.classList.remove('weight-adjusted');
+  satchelWeightBadge.hidden = true;
+  satchelSizeSelect.value = 'auto';
   setDefaultSizingInputs();
   updateSizingLayout();
+  updateSatchelSpecDisplay();
   resultsRegion.hidden = true;
   globalErrorEl.hidden = true;
   collectedSummaryEl.hidden = true;

@@ -110,16 +110,22 @@ export async function fetchAusPostPacRates(order, settings, fetchImpl = fetch) {
     });
   }
 
+  const satchelMeta = order?.satchelMeta || null;
+  const maxAllowedWeight = satchelMeta ? 5 : MAX_PARCEL_WEIGHT_KG;
+
   const { parcels, totalParcelCount } = buildOrderParcels(order, settings);
   for (const parcel of parcels) {
-    if (parcel.weightKg > MAX_PARCEL_WEIGHT_KG) {
+    if (parcel.weightKg > maxAllowedWeight) {
       throw new CarrierError({
         code: 'OVERWEIGHT',
         carrierId,
-        title: 'Parcel exceeds AusPost 22 kg limit',
-        message: `Parcel weight (${parcel.weightKg} kg) exceeds Australia Post PAC's 22 kg per-parcel limit.`,
-        suggestion:
-          settings?.packagingMode === 'combined'
+        title: satchelMeta ? 'Exceeds AusPost 5 kg satchel limit' : 'Parcel exceeds AusPost 22 kg limit',
+        message: satchelMeta
+          ? `Total weight (${parcel.weightKg} kg) exceeds Australia Post's 5 kg flat-rate satchel limit.`
+          : `Parcel weight (${parcel.weightKg} kg) exceeds Australia Post PAC's 22 kg per-parcel limit.`,
+        suggestion: satchelMeta
+          ? 'Switch to Parcel Dimensions mode to quote own packaging.'
+          : settings?.packagingMode === 'combined'
             ? 'Switch Packaging Mode to "Each unit as its own parcel" in Settings or split the consignment.'
             : 'This single unit exceeds AusPost PAC\'s 22 kg parcel limit.'
       });
@@ -140,16 +146,34 @@ export async function fetchAusPostPacRates(order, settings, fetchImpl = fetch) {
   );
 
   // Intersect services available across every parcel group and sum prices across quantities
-  const includeSatchels = cfg.includeSatchels !== false;
+  const includeSatchels = cfg.includeSatchels !== false || Boolean(satchelMeta);
   const serviceTotals = new Map();
 
   for (let idx = 0; idx < perGroupResults.length; idx += 1) {
     const { parcel, services } = perGroupResults[idx];
-    const filtered = services.filter((svc) => {
-      if (includeSatchels) return true;
+    const hasModernSatchel = services.some((s) => /_SATCHEL_(?:EXTRA_SMALL|MEDIUM|LARGE|EXTRA_LARGE)$/.test(String(s?.code || '')));
+    let filtered = services.filter((svc) => {
       const code = String(svc?.code || '');
-      return !code.includes('_SATCHEL_') && !code.includes('_PACKAGE_');
+      if (!includeSatchels && (code.includes('_SATCHEL_') || code.includes('_PACKAGE_'))) {
+        return false;
+      }
+      // Deduplicate legacy weight-named satchel codes when modern size-named equivalents exist
+      if (hasModernSatchel && /_SATCHEL_(?:250G|500G|1KG|3KG|5KG)$/.test(code)) {
+        return false;
+      }
+      return true;
     });
+
+    if (satchelMeta?.tierKey) {
+      const tierSuffix = `_${satchelMeta.tierKey}`;
+      const tierMatches = filtered.filter((svc) => {
+        const code = String(svc?.code || '');
+        return (code.includes('_SATCHEL_') || code.includes('_PACKAGE_')) && code.endsWith(tierSuffix);
+      });
+      if (tierMatches.length) {
+        filtered = tierMatches;
+      }
+    }
 
     const seenInGroup = new Map();
     for (const svc of filtered) {

@@ -8,6 +8,17 @@ body {
   flex-direction: column;
   overflow: hidden;
   font-size: 0.8125rem;
+  transition: inline-size 0.16s ease;
+}
+
+body[data-size="medium"] {
+  inline-size: 620px;
+  max-block-size: 595px;
+}
+
+body[data-size="wide"] {
+  inline-size: 760px;
+  max-block-size: 600px;
 }
 
 .popup-header {
@@ -244,6 +255,26 @@ body {
   flex-direction: column;
   gap: 0.15rem;
   min-inline-size: 0;
+}
+
+.weight-adjusted {
+  border-color: var(--warn-border) !important;
+  background-color: var(--warn-bg) !important;
+  color: var(--warn-text);
+  font-weight: 700;
+}
+
+.weight-badge {
+  display: inline-block;
+  margin-inline-start: 0.25rem;
+  padding: 0.02rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  vertical-align: middle;
 }
 
 .satchel-spec-title {

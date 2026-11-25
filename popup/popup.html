@@ -16,6 +16,15 @@
     </div>
 
     <div class="header-actions">
+      <button type="button" id="resize-popup-btn" class="icon-btn" aria-label="Resize popup window" title="Cycle popup size (Standard / Medium / Wide)">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"/>
+          <polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/>
+          <line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+      </button>
+
       <button
         type="button"
         id="help-btn"
@@ -132,7 +141,7 @@
               <input id="combine-height" type="text" inputmode="decimal" autocomplete="off">
             </div>
             <div class="mini-field">
-              <label for="combine-weight">Total (kg)</label>
+              <label for="combine-weight">Total (kg) <span id="combine-weight-badge" class="weight-badge" hidden>Adjusted</span></label>
               <input id="combine-weight" type="text" inputmode="decimal" autocomplete="off">
             </div>
           </div>
@@ -142,22 +151,26 @@
       <div id="satchel-mode-panel" class="mode-panel" hidden>
         <div class="satchel-body">
           <div class="satchel-select-wrap">
-            <label for="satchel-size-select" class="satchel-label">Satchel Size</label>
+            <div class="sizing-title-group">
+              <label for="satchel-size-select" class="satchel-label">Satchel</label>
+              <span id="satchel-auto-tag" class="preset-tag" hidden></span>
+            </div>
             <select id="satchel-size-select" class="satchel-select">
-              <option value="satchel-s">Small (up to 500g)</option>
-              <option value="satchel-m">Medium (up to 1kg)</option>
-              <option value="satchel-l">Large (up to 3kg)</option>
+              <option value="auto">Auto match</option>
+              <option value="satchel-s">Small (up to 5kg)</option>
+              <option value="satchel-m">Medium (up to 5kg)</option>
+              <option value="satchel-l">Large (up to 5kg)</option>
               <option value="satchel-xl">Extra Large (up to 5kg)</option>
             </select>
           </div>
           <div class="satchel-fields-row">
             <div class="mini-field satchel-weight-field">
-              <label for="satchel-weight">Weight (kg)</label>
-              <input id="satchel-weight" type="text" inputmode="decimal" autocomplete="off">
+              <label for="satchel-weight">Weight (kg) <span id="satchel-weight-badge" class="weight-badge" hidden>Combined</span></label>
+              <input id="satchel-weight" type="text" inputmode="decimal" autocomplete="off" placeholder="Auto">
             </div>
             <div class="satchel-specs-display">
               <span class="satchel-spec-title">Satchel dimensions</span>
-              <span id="satchel-spec-note" class="satchel-spec-dims">35.5 × 22 × 2 cm (Max 0.5 kg)</span>
+              <span id="satchel-spec-note" class="satchel-spec-dims">Auto-fits order items by size &amp; weight</span>
             </div>
           </div>
         </div>
@@ -239,7 +252,7 @@
 
   <footer class="popup-footer">
     <button type="button" id="clear-btn" class="link-btn" hidden>Clear</button>
-    <span id="version-badge" class="version-badge tabular-nums">v1.5.0</span>
+    <span id="version-badge" class="version-badge tabular-nums">v1.6.0</span>
   </footer>
 
   <script type="module" src="popup.js"></script>

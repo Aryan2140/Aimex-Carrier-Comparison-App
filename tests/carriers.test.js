@@ -263,3 +263,71 @@ test('CouriersPlease surfaces clear error when quote returns HTTP 200 with empty
     (err) => err?.code === 'EMPTY_RESPONSE' && /empty or unreadable response/i.test(err.message)
   );
 });
+
+test('Combined satchel mode quotes 1 satchel, filters PAC tier, and deduplicates legacy satchel codes', async () => {
+  const settings = buildTestSettings({
+    maxPricesPerCourier: 5,
+    carriers: { couriersPlease: { enabled: false } }
+  });
+
+  let pacQueryCount = 0;
+  let eparcelItemsBody = null;
+  const mockFetch = async (url, init) => {
+    if (url.includes('postage/parcel/domestic')) {
+      pacQueryCount += 1;
+      return makeJsonResponse({
+        services: {
+          service: [
+            { code: 'AUS_PARCEL_EXPRESS', name: 'Express Post', price: '24.75' },
+            { code: 'AUS_PARCEL_EXPRESS_SATCHEL_LARGE', name: 'Large', price: '25.20' },
+            { code: 'AUS_PARCEL_EXPRESS_SATCHEL_3KG', name: 'Medium satchel', price: '25.20' },
+            { code: 'AUS_PARCEL_REGULAR', name: 'Parcel Post', price: '20.25' },
+            { code: 'AUS_PARCEL_REGULAR_SATCHEL_LARGE', name: 'Large', price: '20.70' },
+            { code: 'AUS_PARCEL_REGULAR_PACKAGE_LARGE', name: 'Large', price: '20.25' },
+            { code: 'AUS_PARCEL_REGULAR_SATCHEL_3KG', name: 'Medium satchel', price: '20.70' }
+          ]
+        }
+      });
+    }
+    if (url.includes('/shipping/v1/prices/items')) {
+      eparcelItemsBody = JSON.parse(init.body);
+      return makeJsonResponse({
+        items: [{
+          prices: [{ product_id: '3D55', product_type: 'PARCEL POST + SIGNATURE', calculated_price: 18.10, calculated_price_ex_gst: 16.45, calculated_gst: 1.65 }]
+        }]
+      });
+    }
+    if (url.includes('/shipping/v1/prices/shipments')) {
+      return makeJsonResponse({
+        shipments: [{
+          items: [{ product_id: '3D55' }],
+          shipment_summary: { total_cost: 18.10, total_cost_ex_gst: 16.45, total_gst: 1.65 }
+        }]
+      });
+    }
+    return makeJsonResponse({}, 404);
+  };
+
+  const order = {
+    ...SAMPLE_ORDER,
+    items: [
+      { label: 'Aimex Water 1 x 8 Stage Filter', weightKg: 0.75, quantity: 1 },
+      { label: 'Aimex Water Maifan Stone Cartridge', weightKg: 0.5, quantity: 1 }
+    ],
+    packagingModeOverride: 'combined',
+    combinedOverride: { lengthCm: 35, widthCm: 25, heightCm: 5, weightKg: 1.25 },
+    satchelMeta: { id: 'satchel-l', name: 'Large', tierKey: 'LARGE', displayDims: '40.5 × 31.5 cm' }
+  };
+
+  const result = await compareRates(order, settings, mockFetch);
+  assert.equal(pacQueryCount, 1);
+  assert.equal(eparcelItemsBody.items.length, 1);
+  assert.equal(eparcelItemsBody.items[0].weight, 1.25);
+
+  const pacGroup = result.carriers.find((c) => c.carrierId === 'auspostPac');
+  assert.deepEqual(
+    pacGroup.rates.map((r) => r.serviceCode),
+    ['AUS_PARCEL_REGULAR_PACKAGE_LARGE', 'AUS_PARCEL_REGULAR_SATCHEL_LARGE', 'AUS_PARCEL_EXPRESS_SATCHEL_LARGE']
+  );
+  assert.equal(result.shipmentSummary.satchel.name, 'Large');
+});

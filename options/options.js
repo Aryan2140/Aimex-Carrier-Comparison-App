@@ -27,6 +27,9 @@ const heightInput = document.getElementById('default-height');
 
 const presetsTbody = document.getElementById('presets-tbody');
 const addPresetBtn = document.getElementById('add-preset-btn');
+const satchelSizesTbody = document.getElementById('satchel-sizes-tbody');
+const satchelRulesTbody = document.getElementById('satchel-rules-tbody');
+const addSatchelRuleBtn = document.getElementById('add-satchel-rule-btn');
 
 const pacEnabledInput = document.getElementById('pac-enabled');
 const pacApiKeyInput = document.getElementById('pac-api-key');
@@ -166,10 +169,143 @@ function collectPresets() {
   return list;
 }
 
+function renderSatchelSizesTable(sizes) {
+  satchelSizesTbody.replaceChildren();
+  for (const s of sizes || []) {
+    const tr = document.createElement('tr');
+    tr.dataset.satchelId = s.id;
+
+    const tdName = document.createElement('td');
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'satchel-tier-name';
+    nameSpan.textContent = s.name;
+    const dimsSpan = document.createElement('span');
+    dimsSpan.className = 'satchel-tier-dims';
+    dimsSpan.textContent = s.displayDims || `${s.lengthCm}×${s.widthCm} cm`;
+    tdName.append(nameSpan, dimsSpan);
+
+    const tdAuto = document.createElement('td');
+    const autoInp = document.createElement('input');
+    autoInp.type = 'checkbox';
+    autoInp.className = 'satchel-auto';
+    autoInp.checked = s.autoMatch !== false;
+    autoInp.setAttribute('aria-label', `Auto-match ${s.name}`);
+    tdAuto.append(autoInp);
+
+    const tdUnits = document.createElement('td');
+    const unitsInp = document.createElement('input');
+    unitsInp.type = 'text';
+    unitsInp.inputMode = 'decimal';
+    unitsInp.className = 'satchel-max-units';
+    unitsInp.value = String(s.maxUnits);
+    unitsInp.setAttribute('aria-label', `${s.name} max units`);
+    tdUnits.append(unitsInp);
+
+    const tdWeight = document.createElement('td');
+    const wtInp = document.createElement('input');
+    wtInp.type = 'text';
+    wtInp.inputMode = 'decimal';
+    wtInp.className = 'satchel-max-weight';
+    wtInp.value = String(s.maxWeightKg);
+    wtInp.setAttribute('aria-label', `${s.name} max weight kg`);
+    tdWeight.append(wtInp);
+
+    tr.append(tdName, tdAuto, tdUnits, tdWeight);
+    satchelSizesTbody.append(tr);
+  }
+}
+
+function collectSatchelSizes() {
+  return Array.from(satchelSizesTbody.querySelectorAll('tr')).map((tr) => ({
+    id: tr.dataset.satchelId,
+    autoMatch: Boolean(tr.querySelector('.satchel-auto')?.checked),
+    maxUnits: Number.parseFloat(tr.querySelector('.satchel-max-units')?.value.trim()) || 1,
+    maxWeightKg: Number.parseFloat(tr.querySelector('.satchel-max-weight')?.value.trim()) || 5
+  }));
+}
+
+function appendSatchelRuleRow(rule = { id: '', name: '', keywords: '', units: 0.5, fitsSatchel: true }) {
+  const tr = document.createElement('tr');
+  tr.dataset.ruleId = rule.id || '';
+
+  const tdMain = document.createElement('td');
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text';
+  nameInp.className = 'satchel-rule-name';
+  nameInp.placeholder = 'Rule name';
+  nameInp.value = rule.name || '';
+  nameInp.setAttribute('aria-label', 'Rule name');
+
+  const kwInp = document.createElement('input');
+  kwInp.type = 'text';
+  kwInp.className = 'satchel-rule-keywords';
+  kwInp.placeholder = 'Comma-separated keywords or SKUs';
+  kwInp.value = rule.keywords || '';
+  kwInp.setAttribute('aria-label', 'Product keywords');
+  tdMain.append(nameInp, kwInp);
+
+  const tdUnits = document.createElement('td');
+  const unitsInp = document.createElement('input');
+  unitsInp.type = 'text';
+  unitsInp.inputMode = 'decimal';
+  unitsInp.className = 'satchel-rule-units';
+  unitsInp.value = String(rule.units ?? 1);
+  unitsInp.setAttribute('aria-label', 'Filter equivalent units');
+  tdUnits.append(unitsInp);
+
+  const tdFits = document.createElement('td');
+  const fitsInp = document.createElement('input');
+  fitsInp.type = 'checkbox';
+  fitsInp.className = 'satchel-rule-fits';
+  fitsInp.checked = rule.fitsSatchel !== false;
+  fitsInp.setAttribute('aria-label', 'Fits in satchel');
+  tdFits.append(fitsInp);
+
+  const tdAction = document.createElement('td');
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-secondary remove-preset-btn';
+  removeBtn.setAttribute('aria-label', `Remove rule ${rule.name || ''}`.trim());
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', () => tr.remove());
+  tdAction.append(removeBtn);
+
+  tr.append(tdMain, tdUnits, tdFits, tdAction);
+  satchelRulesTbody.append(tr);
+}
+
+function renderSatchelRulesTable(rules) {
+  satchelRulesTbody.replaceChildren();
+  for (const rule of rules || []) {
+    appendSatchelRuleRow(rule);
+  }
+}
+
+function collectSatchelRules() {
+  const rows = Array.from(satchelRulesTbody.querySelectorAll('tr'));
+  const list = [];
+  for (const row of rows) {
+    const name = row.querySelector('.satchel-rule-name')?.value.trim();
+    const keywords = row.querySelector('.satchel-rule-keywords')?.value.trim();
+    if (!name || !keywords) continue;
+    const fitsSatchel = Boolean(row.querySelector('.satchel-rule-fits')?.checked);
+    const units = fitsSatchel ? (Number.parseFloat(row.querySelector('.satchel-rule-units')?.value.trim()) || 0) : 0;
+    list.push({
+      id: row.dataset.ruleId || undefined,
+      name,
+      keywords,
+      units,
+      fitsSatchel
+    });
+  }
+  return list;
+}
+
 function populateForm(settings) {
   maxPricesInput.value = String(settings.maxPricesPerCourier);
   includeGstInput.checked = Boolean(settings.includeGst);
   setRadioValue('theme', settings.theme);
+  setRadioValue('popupSize', settings.popupSize || 'standard');
   applyTheme(settings.theme);
 
   originStreetInput.value = settings.origin.street || '';
@@ -182,6 +318,8 @@ function populateForm(settings) {
   heightInput.value = String(settings.defaultDimensions.heightCm);
 
   renderPresetsTable(settings.parcelPresets);
+  renderSatchelSizesTable(settings.satchelSizes);
+  renderSatchelRulesTable(settings.satchelRules);
 
   pacEnabledInput.checked = Boolean(settings.carriers.auspostPac.enabled);
   pacApiKeyInput.value = settings.carriers.auspostPac.apiKey;
@@ -213,6 +351,7 @@ function collectFormSettings() {
     maxPricesPerCourier: Number.parseInt(maxPricesInput.value.trim(), 10),
     includeGst: includeGstInput.checked,
     theme: getRadioValue('theme', 'system'),
+    popupSize: getRadioValue('popupSize', 'standard'),
     origin: {
       street: originStreetInput.value.trim(),
       suburb: originSuburbInput.value.trim(),
@@ -225,6 +364,8 @@ function collectFormSettings() {
       heightCm: Number.parseFloat(heightInput.value.trim())
     },
     parcelPresets: collectPresets(),
+    satchelSizes: collectSatchelSizes(),
+    satchelRules: collectSatchelRules(),
     carriers: {
       auspostPac: {
         enabled: pacEnabledInput.checked,
@@ -380,6 +521,12 @@ async function initOptionsPage() {
   addPresetBtn.addEventListener('click', () => {
     appendPresetRow();
     const lastInput = presetsTbody.querySelector('tr:last-child input.preset-name');
+    if (lastInput instanceof HTMLElement) lastInput.focus();
+  });
+
+  addSatchelRuleBtn.addEventListener('click', () => {
+    appendSatchelRuleRow();
+    const lastInput = satchelRulesTbody.querySelector('tr:last-child input.satchel-rule-name');
     if (lastInput instanceof HTMLElement) lastInput.focus();
   });
 

@@ -63,17 +63,127 @@ export const DEFAULT_PARCEL_PRESETS = [
 ];
 
 export const SATCHEL_PRESETS = [
-  { id: 'satchel-s', name: 'Small (500g)', maxWeightKg: 0.5, lengthCm: 35.5, widthCm: 22, heightCm: 2 },
-  { id: 'satchel-m', name: 'Medium (1kg)', maxWeightKg: 1.0, lengthCm: 40.5, widthCm: 31, heightCm: 3 },
-  { id: 'satchel-l', name: 'Large (3kg)', maxWeightKg: 3.0, lengthCm: 40.5, widthCm: 31, heightCm: 5 },
-  { id: 'satchel-xl', name: 'Extra Large (5kg)', maxWeightKg: 5.0, lengthCm: 51, widthCm: 43.5, heightCm: 6 }
+  {
+    id: 'satchel-s',
+    name: 'Small',
+    tierKey: 'SMALL',
+    maxWeightKg: 5,
+    maxUnits: 1,
+    autoMatch: true,
+    lengthCm: 33,
+    widthCm: 22,
+    heightCm: 2,
+    displayDims: '35.5 × 22 cm'
+  },
+  {
+    id: 'satchel-m',
+    name: 'Medium',
+    tierKey: 'MEDIUM',
+    maxWeightKg: 5,
+    maxUnits: 1.5,
+    autoMatch: false,
+    lengthCm: 35,
+    widthCm: 22,
+    heightCm: 2,
+    displayDims: '39 × 27 cm'
+  },
+  {
+    id: 'satchel-l',
+    name: 'Large',
+    tierKey: 'LARGE',
+    maxWeightKg: 5,
+    maxUnits: 3,
+    autoMatch: true,
+    lengthCm: 35,
+    widthCm: 25,
+    heightCm: 5,
+    displayDims: '40.5 × 31.5 cm'
+  },
+  {
+    id: 'satchel-xl',
+    name: 'Extra Large',
+    tierKey: 'EXTRA_LARGE',
+    maxWeightKg: 5,
+    maxUnits: 6,
+    autoMatch: true,
+    lengthCm: 40.5,
+    widthCm: 31,
+    heightCm: 5,
+    displayDims: '51 × 44 cm'
+  }
 ];
+
+export const DEFAULT_SATCHEL_RULES = [
+  {
+    id: 'non-satchel-purifier',
+    name: 'Benchtop Purifier / Cooler / Tank / Stand',
+    keywords: 'A20, G12, G16, E20, P12, P17, P24, MAIFANE20, PURIFIER, BENCHTOP, COOLER, UPPER TANK, LOWER TANK, HOT WATER TANK, SUPPORT RING, STAND, PGSS, PGNTWS',
+    units: 0,
+    fitsSatchel: false
+  },
+  {
+    id: 'filter-cartridge',
+    name: 'Filter Cartridge (8/7-Stage, AA, Fluoride, Algae, Carbon)',
+    keywords: 'FILTER, CARTRIDGE, 8 STAGE, 7 STAGE, ALGAE, FLUORIDE, SMART CARBON, POSTREAT, AA STAGE, 8KDF, 7KDF, 8WHITE, AIMWHT, AIM8STG, AIMEXACB, PP5UM',
+    units: 1,
+    fitsSatchel: true
+  },
+  {
+    id: 'maifan-stone',
+    name: 'Maifan / Mineral Stone',
+    keywords: 'MAIFAN, MINERAL STONE',
+    units: 0.5,
+    fitsSatchel: true
+  },
+  {
+    id: 'dome',
+    name: 'Plastic / Ceramic Dome',
+    keywords: 'DOME, CERAMIC DOME, PLASTIC DOME',
+    units: 0.5,
+    fitsSatchel: true
+  },
+  {
+    id: 'shower-filter',
+    name: 'Shower Filter / Shower Cartridge',
+    keywords: 'SHOWER, PURERAIN, AIMSHRCART, AW-SF',
+    units: 0.5,
+    fitsSatchel: true
+  },
+  {
+    id: 'small-accessory',
+    name: 'Tap / Spigot / Valve / Adaptor / Bottle / Straw / Sponge',
+    keywords: 'TAP, SPIGOT, FLOAT, VALVE, ADAPTOR, ADAPTER, STRAW, MINIWELL, SPONGE, SHAMPOO, WASH, RINSE, SHIELD',
+    units: 0.5,
+    fitsSatchel: true
+  },
+  {
+    id: 'tiny-part',
+    name: 'Felt Pads / Plugs / Knob / Wingnuts / Clip / Seal',
+    keywords: 'FELT, PLUG, KNOB, WINGNUT, WASHER, CLIP, SEAL',
+    units: 0.25,
+    fitsSatchel: true
+  },
+  {
+    id: 'food-jar-refill',
+    name: 'Food Jar / FluoRid Refill Media',
+    keywords: 'MARI, FOOD JAR, REFILL MEDIA, PTSFRRL',
+    units: 1,
+    fitsSatchel: true
+  }
+];
+
+export const POPUP_SIZES = {
+  standard: { label: 'Standard', widthPx: 484, heightPx: 590 },
+  medium: { label: 'Medium', widthPx: 620, heightPx: 595 },
+  wide: { label: 'Wide', widthPx: 760, heightPx: 600 }
+};
 
 export const DEFAULT_SETTINGS = {
   maxPricesPerCourier: 3,
   includeGst: true,
   packagingMode: 'per_unit',
   theme: 'system',
+  popupSize: 'standard',
   origin: {
     street: '26/191 McCredie Rd',
     suburb: 'Smithfield',
@@ -86,6 +196,8 @@ export const DEFAULT_SETTINGS = {
     heightCm: 10
   },
   parcelPresets: DEFAULT_PARCEL_PRESETS,
+  satchelSizes: SATCHEL_PRESETS,
+  satchelRules: DEFAULT_SATCHEL_RULES,
   carriers: {
     auspostPac: {
       enabled: true,

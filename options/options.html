@@ -16,7 +16,7 @@
       </div>
       <h1 class="header-title">Settings</h1>
       <div class="header-side header-side--right">
-        <span id="ext-version" class="version-pill tabular-nums">v1.5.0</span>
+        <span id="ext-version" class="version-pill tabular-nums">v1.6.0</span>
       </div>
     </div>
   </header>
@@ -64,6 +64,24 @@
             </div>
           </fieldset>
         </div>
+
+        <fieldset class="sub-fieldset">
+          <legend>Popup Width</legend>
+          <div class="radio-group radio-group--inline">
+            <div class="radio-row">
+              <input id="popup-size-standard" name="popupSize" type="radio" value="standard">
+              <label for="popup-size-standard">Standard (484px)</label>
+            </div>
+            <div class="radio-row">
+              <input id="popup-size-medium" name="popupSize" type="radio" value="medium">
+              <label for="popup-size-medium">Medium (620px)</label>
+            </div>
+            <div class="radio-row">
+              <input id="popup-size-wide" name="popupSize" type="radio" value="wide">
+              <label for="popup-size-wide">Wide (760px)</label>
+            </div>
+          </div>
+        </fieldset>
 
         <div class="checkbox-row">
           <input id="include-gst" name="includeGst" type="checkbox">
@@ -198,6 +216,41 @@
         </div>
         <div>
           <button type="button" id="add-preset-btn" class="btn-secondary">+ Add Preset</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-card">
+        <legend>Satchel Auto-Match Rules</legend>
+
+        <div class="presets-table-wrap">
+          <table class="presets-table">
+            <thead>
+              <tr>
+                <th scope="col">Satchel Tier</th>
+                <th scope="col">Auto-Match</th>
+                <th scope="col">Max Units</th>
+                <th scope="col">Max Weight (kg)</th>
+              </tr>
+            </thead>
+            <tbody id="satchel-sizes-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="presets-table-wrap">
+          <table class="presets-table">
+            <thead>
+              <tr>
+                <th scope="col">Product Group / Keywords</th>
+                <th scope="col">Units (1 = 1 Filter)</th>
+                <th scope="col">Fits Satchel</th>
+                <th scope="col"><span class="visually-hidden">Remove</span></th>
+              </tr>
+            </thead>
+            <tbody id="satchel-rules-tbody"></tbody>
+          </table>
+        </div>
+        <div>
+          <button type="button" id="add-satchel-rule-btn" class="btn-secondary">+ Add Rule</button>
         </div>
       </fieldset>
 

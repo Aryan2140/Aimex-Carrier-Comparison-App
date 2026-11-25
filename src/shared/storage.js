@@ -7,7 +7,10 @@ import {
   COURIERSPLEASE_URLS,
   DEFAULT_PARCEL_PRESETS,
   DEFAULT_REPO_URL,
-  DEFAULT_SETTINGS
+  DEFAULT_SATCHEL_RULES,
+  DEFAULT_SETTINGS,
+  POPUP_SIZES,
+  SATCHEL_PRESETS
 } from './constants.js';
 
 const STORAGE_KEYS = {
@@ -77,6 +80,54 @@ function normalizePresets(candidate, fallback) {
   return cleaned.length ? cleaned : fallback;
 }
 
+function normalizeSatchelSizes(candidate, fallback) {
+  if (!Array.isArray(candidate) || !candidate.length) return fallback;
+  const defaultsById = new Map(SATCHEL_PRESETS.map((s) => [s.id, s]));
+  const cleaned = [];
+  const seen = new Set();
+
+  for (const base of SATCHEL_PRESETS) {
+    const match = candidate.find((row) => cleanString(row?.id) === base.id) || {};
+    const maxUnits = positiveFloat(match.maxUnits, base.maxUnits);
+    const maxWeightKg = positiveFloat(match.maxWeightKg, base.maxWeightKg);
+    const autoMatch = typeof match.autoMatch === 'boolean' ? match.autoMatch : base.autoMatch;
+    seen.add(base.id);
+    cleaned.push({
+      ...base,
+      autoMatch,
+      maxUnits,
+      maxWeightKg,
+      lengthCm: positiveFloat(match.lengthCm, base.lengthCm),
+      widthCm: positiveFloat(match.widthCm, base.widthCm),
+      heightCm: positiveFloat(match.heightCm, base.heightCm)
+    });
+  }
+  return cleaned.length ? cleaned : (fallback || defaultsById.values());
+}
+
+function normalizeSatchelRules(candidate, fallback) {
+  if (!Array.isArray(candidate)) return fallback;
+  const cleaned = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
+  for (let i = 0; i < candidate.length; i += 1) {
+    const row = candidate[i];
+    const name = cleanString(row?.name);
+    const keywords = cleanString(row?.keywords);
+    if (!name || !keywords) continue;
+    const fitsSatchel = typeof row?.fitsSatchel === 'boolean' ? row.fitsSatchel : true;
+    const rawUnits = Number.parseFloat(String(row?.units));
+    const units = fitsSatchel ? (Number.isFinite(rawUnits) && rawUnits >= 0 ? rawUnits : 1) : 0;
+    const id = cleanString(row?.id) || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `rule-${i + 1}`;
+    const nameKey = name.toLowerCase();
+    if (seenIds.has(id) || seenNames.has(nameKey)) continue;
+    seenIds.add(id);
+    seenNames.add(nameKey);
+    cleaned.push({ id, name, keywords, units, fitsSatchel });
+  }
+  return cleaned.length ? cleaned : fallback;
+}
+
 /**
  * Deep-merge settings overrides onto base settings with schema normalization.
  * Preserves leading zeros on postcodes and account numbers by storing them as strings.
@@ -129,6 +180,9 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
     theme: ['system', 'light', 'dark'].includes(src.theme)
       ? src.theme
       : (base.theme || DEFAULT_SETTINGS.theme),
+    popupSize: Object.hasOwn(POPUP_SIZES, src.popupSize)
+      ? src.popupSize
+      : (Object.hasOwn(POPUP_SIZES, base.popupSize) ? base.popupSize : DEFAULT_SETTINGS.popupSize),
     origin: {
       street: cleanString(ovOrigin.street, baseOrigin.street ?? DEFAULT_SETTINGS.origin.street),
       suburb: cleanString(ovOrigin.suburb, baseOrigin.suburb),
@@ -143,6 +197,14 @@ export function mergeSettings(base = DEFAULT_SETTINGS, override = {}) {
     parcelPresets: normalizePresets(
       src.parcelPresets,
       normalizePresets(base.parcelPresets, DEFAULT_PARCEL_PRESETS)
+    ),
+    satchelSizes: normalizeSatchelSizes(
+      src.satchelSizes,
+      normalizeSatchelSizes(base.satchelSizes, SATCHEL_PRESETS)
+    ),
+    satchelRules: normalizeSatchelRules(
+      src.satchelRules,
+      normalizeSatchelRules(base.satchelRules, DEFAULT_SATCHEL_RULES)
     ),
     carriers: {
       auspostPac: {
@@ -431,7 +493,7 @@ export function importSettingsJson(jsonText) {
     throw new Error('Unrecognized settings format.');
   }
 
-  const hasKnownKey = ['carriers', 'origin', 'parcelPresets', 'maxPricesPerCourier', 'updates']
+  const hasKnownKey = ['carriers', 'origin', 'parcelPresets', 'satchelSizes', 'satchelRules', 'maxPricesPerCourier', 'updates', 'popupSize']
     .some((k) => Object.hasOwn(candidate, k));
   if (!hasKnownKey) {
     throw new Error('This JSON file does not contain Carrier Comparison Companion settings.');
