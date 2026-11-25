@@ -32,8 +32,11 @@ test('matchProductPreset matches all 12 favourite parcel items and real LogicSyn
     [{ label: 'G12 with 3 8 stage filters' }, 'A20/G12 3X', 5, [33, 33, 40]],
     [{ label: 'E20 System' }, 'E20', 3, [33, 33, 30]],
     [{ label: 'Model P12C2D2 Filter' }, 'P12C2D2', 6, [26, 26, 37]],
-    [{ label: 'Model P17C2D2 Filter' }, 'P17C2D2', 6, [27, 27, 40]],
-    [{ label: 'Model P24C2D2 Filter' }, 'P24C2D2', 6.5, [30, 30, 45]]
+    [{ label: 'Model P17C2D2 Filter' }, 'P17C2D2', 4.86, [26.5, 26.5, 39]],
+    [{ label: 'Model P24C2D2 Filter' }, 'P24C2D2', 5.75, [30, 30, 47]],
+    [{ label: 'Phoenix Gravity 8L', sku: 'P17C2F2SSD2' }, 'P17C2F2SSD2', 6.11, [26.5, 26.5, 39]],
+    [{ label: 'Rama Inline Filter', sku: 'RIFSC9' }, 'RIFSC9', 1.6, [30.5, 5.9, 5.9]],
+    [{ label: 'Phoenix Tap', sku: 'PSSP17' }, 'PSSP17', 0.15, [6.4, 4, 10.5]]
   ];
 
   for (const [item, expectedName, expectedWt, expectedDims] of cases) {

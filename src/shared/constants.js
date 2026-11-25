@@ -57,9 +57,26 @@ export const DEFAULT_PARCEL_PRESETS = [
   { id: 'a20-g12-1x', name: 'A20/G12 1X', weightKg: 4, lengthCm: 30, widthCm: 30, heightCm: 33 },
   { id: 'a20-g12-3x', name: 'A20/G12 3X', weightKg: 5, lengthCm: 33, widthCm: 33, heightCm: 40 },
   { id: 'e20', name: 'E20', weightKg: 3, lengthCm: 33, widthCm: 33, heightCm: 30 },
+  { id: 'p12c2d0', name: 'P12C2D0', weightKg: 4.03, lengthCm: 25, widthCm: 25, heightCm: 37 },
+  { id: 'p12c2f2d0', name: 'P12C2F2D0', weightKg: 4.85, lengthCm: 25, widthCm: 25, heightCm: 37 },
   { id: 'p12c2d2', name: 'P12C2D2', weightKg: 6, lengthCm: 26, widthCm: 26, heightCm: 37 },
-  { id: 'p17c2d2', name: 'P17C2D2', weightKg: 6, lengthCm: 27, widthCm: 27, heightCm: 40 },
-  { id: 'p24c2d2', name: 'P24C2D2', weightKg: 6.5, lengthCm: 30, widthCm: 30, heightCm: 45 }
+  { id: 'p17c2d2', name: 'P17C2D2', weightKg: 4.86, lengthCm: 26.5, widthCm: 26.5, heightCm: 39 },
+  { id: 'p17c2f2ssd2', name: 'P17C2F2SSD2', weightKg: 6.11, lengthCm: 26.5, widthCm: 26.5, heightCm: 39 },
+  { id: 'p17c2pf2d2', name: 'P17C2PF2D2', weightKg: 5.49, lengthCm: 26.5, widthCm: 26.5, heightCm: 39 },
+  { id: 'p17c2ssd2', name: 'P17C2SSD2', weightKg: 5.2, lengthCm: 26.5, widthCm: 26.5, heightCm: 39 },
+  { id: 'p24c2d2', name: 'P24C2D2', weightKg: 5.75, lengthCm: 30, widthCm: 30, heightCm: 47 },
+  { id: 'p24c2f2ssd2', name: 'P24C2F2SSD2', weightKg: 7.07, lengthCm: 30, widthCm: 30, heightCm: 47 },
+  { id: 'p24c2pf2d2', name: 'P24C2PF2D2', weightKg: 6.43, lengthCm: 30, widthCm: 30, heightCm: 47 },
+  { id: 'p1p5c1', name: 'P1P5C1', weightKg: 2.5, lengthCm: 19, widthCm: 19, heightCm: 30 },
+  { id: 'p24c2ssd2', name: 'P24C2SSD2', weightKg: 6.61, lengthCm: 30, widthCm: 30, heightCm: 47 },
+  { id: 'pgtws-8t', name: 'PGTWS-8T', weightKg: 1, lengthCm: 23.5, widthCm: 23.5, heightCm: 20.5 },
+  { id: 'pkc2', name: 'PKC2', weightKg: 0.85, lengthCm: 14, widthCm: 7, heightCm: 32 },
+  { id: 'ppts2nd', name: 'PPTS2ND', weightKg: 1.25, lengthCm: 16, widthCm: 8, heightCm: 19 },
+  { id: 'ptsfrrl', name: 'PTSFRRL', weightKg: 0.75, lengthCm: 24, widthCm: 13, heightCm: 4.5 },
+  { id: 'pgtws-12t', name: 'PGTWS-12T', weightKg: 1.2, lengthCm: 25.5, widthCm: 25.5, heightCm: 20.5 },
+  { id: 'pssp17', name: 'PSSP17', weightKg: 0.15, lengthCm: 6.4, widthCm: 4, heightCm: 10.5 },
+  { id: 'rifsc9', name: 'RIFSC9', weightKg: 1.6, lengthCm: 30.5, widthCm: 5.9, heightCm: 5.9 },
+  { id: 's7gac', name: 'S7GAC', weightKg: 0.76, lengthCm: 14, widthCm: 7, heightCm: 32 }
 ];
 
 export const SATCHEL_PRESETS = [
