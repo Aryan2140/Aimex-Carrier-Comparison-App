@@ -16,7 +16,7 @@
       </div>
       <h1 class="header-title">Settings</h1>
       <div class="header-side header-side--right">
-        <span id="ext-version" class="version-pill tabular-nums">v1.4.0</span>
+        <span id="ext-version" class="version-pill tabular-nums">v1.5.0</span>
       </div>
     </div>
   </header>
@@ -389,7 +389,14 @@
       </fieldset>
 
       <fieldset class="settings-card">
-        <legend>Import <code>.env</code> &amp; GitHub Updates</legend>
+        <legend>Transfer Settings &amp; GitHub Updates</legend>
+
+        <div class="test-bar">
+          <button type="button" id="export-settings-btn" class="btn-secondary">Export Settings</button>
+          <button type="button" id="import-settings-btn" class="btn-secondary">Import Settings</button>
+          <input id="import-settings-input" type="file" accept=".json,application/json" hidden>
+          <span id="transfer-status" class="test-result" role="status"></span>
+        </div>
 
         <div class="field-group">
           <label for="env-file-input">Import local <code>.env</code> file</label>

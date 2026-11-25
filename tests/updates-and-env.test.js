@@ -70,3 +70,28 @@ test('checkForUpdates detects GitHub releases and falls back to manifest.json on
   assert.equal(errRes.status, 'error');
   assert.match(errRes.error, /not pushed the repository yet/i);
 });
+
+test('exportSettingsJson and importSettingsJson round-trip without duplicating presets', async () => {
+  const { exportSettingsJson, importSettingsJson, mergeSettings } = await import('../src/shared/storage.js');
+  const { DEFAULT_SETTINGS } = await import('../src/shared/constants.js');
+
+  const custom = mergeSettings(DEFAULT_SETTINGS, {
+    carriers: { couriersPlease: { account: '113203947', apiKey: 'test-token' } },
+    parcelPresets: [
+      { id: '1x', name: '1X', weightKg: 0.75, lengthCm: 22, widthCm: 16, heightCm: 11 },
+      { id: '1x', name: '1X', weightKg: 0.75, lengthCm: 22, widthCm: 16, heightCm: 11 },
+      { id: 'custom-box', name: 'Custom Box', weightKg: 2.5, lengthCm: 30, widthCm: 20, heightCm: 15 }
+    ]
+  });
+
+  const json = exportSettingsJson(custom);
+  const imported = importSettingsJson(json);
+
+  assert.equal(imported.carriers.couriersPlease.account, '113203947');
+  assert.equal(imported.carriers.couriersPlease.apiKey, 'test-token');
+  assert.equal(imported.parcelPresets.length, 2);
+  assert.deepEqual(imported.parcelPresets.map((p) => p.name), ['1X', 'Custom Box']);
+
+  assert.throws(() => importSettingsJson('not valid json'), /Invalid JSON/i);
+  assert.throws(() => importSettingsJson('{"foo":"bar"}'), /does not contain/i);
+});

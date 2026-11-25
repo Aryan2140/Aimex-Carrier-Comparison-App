@@ -57,6 +57,8 @@ function resolveCouriersPleaseEnvFromUrl(urlString) {
 function normalizePresets(candidate, fallback) {
   if (!Array.isArray(candidate)) return fallback;
   const cleaned = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
   for (let i = 0; i < candidate.length; i += 1) {
     const row = candidate[i];
     const name = cleanString(row?.name);
@@ -66,6 +68,10 @@ function normalizePresets(candidate, fallback) {
     const heightCm = positiveFloat(row?.heightCm, 0);
     if (!name || !weightKg || !lengthCm || !widthCm || !heightCm) continue;
     const id = cleanString(row?.id) || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `preset-${i + 1}`;
+    const nameKey = name.toLowerCase();
+    if (seenIds.has(id) || seenNames.has(nameKey)) continue;
+    seenIds.add(id);
+    seenNames.add(nameKey);
     cleaned.push({ id, name, weightKg, lengthCm, widthCm, heightCm });
   }
   return cleaned.length ? cleaned : fallback;
@@ -387,4 +393,49 @@ export async function loadLastResult(orderUrl) {
 export async function clearLastResult() {
   if (!chrome?.storage?.session) return;
   await chrome.storage.session.remove(STORAGE_KEYS.LAST_COMPARISON);
+}
+
+/**
+ * Serialize normalized settings into a portable JSON string for backup/transfer.
+ * @param {object} settings
+ * @returns {string}
+ */
+export function exportSettingsJson(settings) {
+  const normalized = mergeSettings(DEFAULT_SETTINGS, settings);
+  return JSON.stringify(
+    {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      settings: normalized
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * Parse and validate an exported settings JSON string without duplicating presets.
+ * @param {string} jsonText
+ * @returns {typeof DEFAULT_SETTINGS}
+ */
+export function importSettingsJson(jsonText) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(jsonText || ''));
+  } catch {
+    throw new Error('Invalid JSON file. Please select a valid exported settings file.');
+  }
+
+  const candidate = parsed?.settings && typeof parsed.settings === 'object' ? parsed.settings : parsed;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    throw new Error('Unrecognized settings format.');
+  }
+
+  const hasKnownKey = ['carriers', 'origin', 'parcelPresets', 'maxPricesPerCourier', 'updates']
+    .some((k) => Object.hasOwn(candidate, k));
+  if (!hasKnownKey) {
+    throw new Error('This JSON file does not contain Carrier Comparison Companion settings.');
+  }
+
+  return mergeSettings(DEFAULT_SETTINGS, candidate);
 }

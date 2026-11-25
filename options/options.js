@@ -1,6 +1,8 @@
 import { CARRIER_IDS } from '../src/shared/constants.js';
 import { createToastManager, initFormValidation } from '../src/shared/form-a11y.js';
 import {
+  exportSettingsJson,
+  importSettingsJson,
   loadSettings,
   mergeSettings,
   parseEnvText,
@@ -49,6 +51,11 @@ const cpValidateLocationInput = document.getElementById('cp-validate-location');
 
 const repoUrlInput = document.getElementById('repo-url');
 const githubTokenInput = document.getElementById('github-token');
+
+const exportSettingsBtn = document.getElementById('export-settings-btn');
+const importSettingsBtn = document.getElementById('import-settings-btn');
+const importSettingsInput = document.getElementById('import-settings-input');
+const transferStatus = document.getElementById('transfer-status');
 
 const envFileInput = document.getElementById('env-file-input');
 const envPasteText = document.getElementById('env-paste-text');
@@ -393,6 +400,45 @@ async function initOptionsPage() {
   testPacBtn.addEventListener('click', () => runCarrierTest(CARRIER_IDS.AUSPOST_PAC, testPacBtn, testPacResult));
   testEparcelBtn.addEventListener('click', () => runCarrierTest(CARRIER_IDS.AUSPOST_EPARCEL, testEparcelBtn, testEparcelResult));
   testCpBtn.addEventListener('click', () => runCarrierTest(CARRIER_IDS.COURIERS_PLEASE, testCpBtn, testCpResult));
+
+  exportSettingsBtn.addEventListener('click', async () => {
+    const current = await loadSettings();
+    const json = exportSettingsJson(current);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'aimex-carrier-settings.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    transferStatus.dataset.tone = 'success';
+    transferStatus.textContent = 'Exported saved settings.';
+    toast.show('Settings exported.', { tone: 'success' });
+  });
+
+  importSettingsBtn.addEventListener('click', () => {
+    importSettingsInput.click();
+  });
+
+  importSettingsInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const imported = importSettingsJson(text);
+      const saved = await saveSettings(imported);
+      populateForm(saved);
+      transferStatus.dataset.tone = 'success';
+      transferStatus.textContent = `Imported settings (${saved.parcelPresets.length} presets).`;
+      toast.show('Settings imported and saved.', { tone: 'success' });
+    } catch (err) {
+      transferStatus.dataset.tone = 'error';
+      transferStatus.textContent = err instanceof Error ? err.message : 'Failed to import settings.';
+      toast.show('Import failed.', { tone: 'error' });
+    } finally {
+      importSettingsInput.value = '';
+    }
+  });
 
   envFileInput.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
