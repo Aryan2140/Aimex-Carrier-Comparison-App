@@ -501,3 +501,121 @@ export function importSettingsJson(jsonText) {
 
   return mergeSettings(DEFAULT_SETTINGS, candidate);
 }
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function base64ToBytes(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function deriveAesKey(passphrase, saltBytes, iterations = 100000) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) throw new Error('Web Crypto API is unavailable in this environment.');
+  const enc = new TextEncoder();
+  const baseKey = await subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+  return subtle.deriveKey(
+    { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Check whether a settings JSON string is encrypted.
+ * @param {string} jsonText
+ * @returns {boolean}
+ */
+export function isEncryptedSettingsJson(jsonText) {
+  try {
+    const parsed = JSON.parse(String(jsonText || ''));
+    return Boolean(parsed && parsed.encrypted === true && parsed.ciphertext);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Encrypt normalized settings into a portable AES-GCM JSON string using a passphrase.
+ * @param {object} settings
+ * @param {string} passphrase
+ * @returns {Promise<string>}
+ */
+export async function encryptSettingsJson(settings, passphrase) {
+  const pass = String(passphrase || '');
+  if (!pass) throw new Error('A passphrase is required to encrypt exported settings.');
+
+  const plainJson = exportSettingsJson(settings);
+  const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+  const iterations = 100000;
+  const key = await deriveAesKey(pass, salt, iterations);
+  const ciphertextBuf = await globalThis.crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(plainJson)
+  );
+
+  return JSON.stringify(
+    {
+      schemaVersion: 2,
+      encrypted: true,
+      algorithm: 'AES-GCM',
+      kdf: 'PBKDF2-SHA256',
+      iterations,
+      salt: bytesToBase64(salt),
+      iv: bytesToBase64(iv),
+      ciphertext: bytesToBase64(new Uint8Array(ciphertextBuf)),
+      exportedAt: new Date().toISOString()
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * Decrypt an encrypted settings JSON string using the passphrase and normalize it.
+ * @param {string} jsonText
+ * @param {string} passphrase
+ * @returns {Promise<typeof DEFAULT_SETTINGS>}
+ */
+export async function decryptSettingsJson(jsonText, passphrase) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(jsonText || ''));
+  } catch {
+    throw new Error('Invalid JSON file. Please select a valid exported settings file.');
+  }
+
+  if (!parsed?.encrypted) {
+    return importSettingsJson(jsonText);
+  }
+
+  const pass = String(passphrase || '');
+  if (!pass) throw new Error('Passphrase is required to decrypt this settings file.');
+
+  try {
+    const salt = base64ToBytes(parsed.salt);
+    const iv = base64ToBytes(parsed.iv);
+    const ciphertext = base64ToBytes(parsed.ciphertext);
+    const iterations = Number(parsed.iterations) || 100000;
+    const key = await deriveAesKey(pass, salt, iterations);
+    const plainBuf = await globalThis.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      ciphertext
+    );
+    const plainText = new TextDecoder().decode(plainBuf);
+    return importSettingsJson(plainText);
+  } catch {
+    throw new Error('Incorrect passphrase or corrupted settings file.');
+  }
+}

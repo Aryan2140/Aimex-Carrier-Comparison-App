@@ -1,8 +1,10 @@
 import { CARRIER_IDS } from '../src/shared/constants.js';
 import { createToastManager, initFormValidation } from '../src/shared/form-a11y.js';
 import {
-  exportSettingsJson,
+  decryptSettingsJson,
+  encryptSettingsJson,
   importSettingsJson,
+  isEncryptedSettingsJson,
   loadSettings,
   mergeSettings,
   parseEnvText,
@@ -76,6 +78,32 @@ const updateCheckResult = document.getElementById('update-check-result');
 
 const resetDialog = document.getElementById('reset-dialog');
 const openResetDialogBtn = document.getElementById('open-reset-dialog-btn');
+const passphraseDialog = document.getElementById('passphrase-dialog');
+const passphraseDialogTitle = document.getElementById('passphrase-dialog-title');
+const passphraseDialogCopy = document.getElementById('passphrase-dialog-copy');
+const transferPassphraseInput = document.getElementById('transfer-passphrase-input');
+const passphraseConfirmBtn = document.getElementById('passphrase-confirm-btn');
+
+function promptPassphrase({ title, copy, confirmLabel }) {
+  return new Promise((resolve) => {
+    passphraseDialogTitle.textContent = title;
+    passphraseDialogCopy.textContent = copy;
+    passphraseConfirmBtn.textContent = confirmLabel;
+    transferPassphraseInput.value = '';
+    const onClose = () => {
+      passphraseDialog.removeEventListener('close', onClose);
+      if (passphraseDialog.returnValue === 'confirm') {
+        resolve(transferPassphraseInput.value);
+      } else {
+        resolve(null);
+      }
+      transferPassphraseInput.value = '';
+    };
+    passphraseDialog.addEventListener('close', onClose);
+    passphraseDialog.showModal();
+    transferPassphraseInput.focus();
+  });
+}
 
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
@@ -549,8 +577,15 @@ async function initOptionsPage() {
   testCpBtn.addEventListener('click', () => runCarrierTest(CARRIER_IDS.COURIERS_PLEASE, testCpBtn, testCpResult));
 
   exportSettingsBtn.addEventListener('click', async () => {
+    const passphrase = await promptPassphrase({
+      title: 'Encrypt Exported Settings',
+      copy: 'Enter a passphrase to encrypt your API keys and settings. You will need this passphrase when importing.',
+      confirmLabel: 'Export Encrypted'
+    });
+    if (!passphrase) return;
+
     const current = await loadSettings();
-    const json = exportSettingsJson(current);
+    const json = await encryptSettingsJson(current, passphrase);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -559,8 +594,8 @@ async function initOptionsPage() {
     a.click();
     URL.revokeObjectURL(url);
     transferStatus.dataset.tone = 'success';
-    transferStatus.textContent = 'Exported saved settings.';
-    toast.show('Settings exported.', { tone: 'success' });
+    transferStatus.textContent = 'Exported encrypted settings.';
+    toast.show('Encrypted settings exported.', { tone: 'success' });
   });
 
   importSettingsBtn.addEventListener('click', () => {
@@ -572,7 +607,18 @@ async function initOptionsPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      const imported = importSettingsJson(text);
+      let imported;
+      if (isEncryptedSettingsJson(text)) {
+        const passphrase = await promptPassphrase({
+          title: 'Decrypt Settings File',
+          copy: 'This settings file is encrypted. Enter the passphrase used when exporting.',
+          confirmLabel: 'Decrypt & Import'
+        });
+        if (!passphrase) return;
+        imported = await decryptSettingsJson(text, passphrase);
+      } else {
+        imported = importSettingsJson(text);
+      }
       const saved = await saveSettings(imported);
       populateForm(saved);
       transferStatus.dataset.tone = 'success';

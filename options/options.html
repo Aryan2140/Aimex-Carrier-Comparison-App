@@ -16,7 +16,7 @@
       </div>
       <h1 class="header-title">Settings</h1>
       <div class="header-side header-side--right">
-        <span id="ext-version" class="version-pill tabular-nums">v1.7.0</span>
+        <span id="ext-version" class="version-pill tabular-nums">v1.8.0</span>
       </div>
     </div>
   </header>
@@ -509,6 +509,23 @@
         <button type="submit" value="cancel" class="btn-secondary">Cancel</button>
         <button type="submit" value="reset-local" class="btn-primary">Reload Local Config</button>
         <button type="submit" value="reset-blank" class="btn-danger">Clear All</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="passphrase-dialog" aria-labelledby="passphrase-dialog-title" closedby="any">
+    <form method="dialog" class="dialog-form">
+      <div class="dialog-head">
+        <h1 id="passphrase-dialog-title">Enter Passphrase</h1>
+      </div>
+      <p id="passphrase-dialog-copy" class="dialog-copy"></p>
+      <div class="field-group">
+        <label for="transfer-passphrase-input">Passphrase</label>
+        <input id="transfer-passphrase-input" type="password" autocomplete="off" required>
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" formnovalidate class="btn-secondary">Cancel</button>
+        <button type="submit" value="confirm" id="passphrase-confirm-btn" class="btn-primary">Confirm</button>
       </div>
     </form>
   </dialog>

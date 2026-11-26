@@ -103,3 +103,26 @@ test('exportSettingsJson and importSettingsJson round-trip without duplicating p
   assert.throws(() => importSettingsJson('not valid json'), /Invalid JSON/i);
   assert.throws(() => importSettingsJson('{"foo":"bar"}'), /does not contain/i);
 });
+
+test('encryptSettingsJson and decryptSettingsJson protect API keys with AES-GCM passphrase', async () => {
+  const { encryptSettingsJson, decryptSettingsJson, isEncryptedSettingsJson, mergeSettings } = await import('../src/shared/storage.js');
+  const { DEFAULT_SETTINGS } = await import('../src/shared/constants.js');
+
+  const custom = mergeSettings(DEFAULT_SETTINGS, {
+    carriers: { couriersPlease: { account: '113203947', apiKey: 'super-secret-cp-token' } }
+  });
+
+  const encryptedJson = await encryptSettingsJson(custom, 'aimex-team-pass');
+  assert.equal(isEncryptedSettingsJson(encryptedJson), true);
+  assert.equal(encryptedJson.includes('super-secret-cp-token'), false);
+  assert.equal(encryptedJson.includes('113203947'), false);
+
+  const decrypted = await decryptSettingsJson(encryptedJson, 'aimex-team-pass');
+  assert.equal(decrypted.carriers.couriersPlease.account, '113203947');
+  assert.equal(decrypted.carriers.couriersPlease.apiKey, 'super-secret-cp-token');
+
+  await assert.rejects(
+    () => decryptSettingsJson(encryptedJson, 'wrong-passphrase'),
+    /Incorrect passphrase/i
+  );
+});
